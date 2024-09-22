@@ -127,7 +127,6 @@ glm::vec3 Trackball::left() const
 
 void Trackball::mouseButtonCallback(int button, int action, int /* mods */)
 {
-
     if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
         m_prevCursorPos = m_pWindow->getCursorPos();
     }
@@ -135,8 +134,8 @@ void Trackball::mouseButtonCallback(int button, int action, int /* mods */)
 
 void Trackball::mouseMoveCallback(const glm::vec2& pos)
 {
-    const bool rotateXY = m_pWindow->isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
-    const bool translateXY = m_canTranslate && m_pWindow->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
+    const bool rotateXY = m_pWindow->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
+    const bool translateXY = m_canTranslate && m_pWindow->isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 
     if (rotateXY || translateXY) {
         // Amount of cursor motion compared to the previous frame. Positive = right/top

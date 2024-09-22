@@ -31,7 +31,7 @@ public:
     Application()
             : m_window("Final Project", glm::ivec2(1024, 1024), OpenGLVersion::GL45),
               m_texture("resources/checkerboard.png"),
-              m_trackballCamera(&m_window, 90, 1, 0, 0) {
+              m_trackballCamera(&m_window, 90) {
         // m_window.registerKeyCallback([this](int key, int scancode, int action, int mods) {
         //     if (action == GLFW_PRESS)
         //         onKeyPressed(key, mods);
@@ -65,22 +65,12 @@ public:
         }
     }
 
-    void gui() {
-        int dummyInteger = 0;
-        ImGui::Begin("Window");
-        ImGui::InputInt("This is an integer input",
-                        &dummyInteger); // Use ImGui::DragInt or ImGui::DragFloat for larger range of numbers.
-        ImGui::Text("Value is: %i", dummyInteger); // Use C printf formatting rules (%i is a signed integer)
-        ImGui::Checkbox("Use material if no texture", &m_useMaterial);
-        ImGui::End();
-    }
-
     void update() {
         while (!m_window.shouldClose()) {
             m_window.updateInput();
             gui();
 
-            m_projectionMatrix = glm::perspective(glm::radians(FOV), m_window.getAspectRatio(), ZNEAR, ZFAR);
+            m_projectionMatrix = m_trackballCamera.projectionMatrix();
             m_viewMatrix = m_trackballCamera.viewMatrix();
 
             // Clear the screen
@@ -111,6 +101,12 @@ public:
         }
     }
 
+    void gui() {
+        ImGui::Begin("Window");
+        ImGui::Checkbox("Camera can translate:", &m_trackballCamera.m_canTranslate);
+        ImGui::End();
+    }
+
     // void onKeyPressed(int key, int mods) { std::cout << "Key pressed: " << key << std::endl; }
     // void onKeyReleased(int key, int mods) { std::cout << "Key released: " << key << std::endl; }
     // void onMouseMove(const glm::dvec2 &cursorPos) { std::cout << "Mouse at position: " << cursorPos.x << " " << cursorPos.y << std::endl; }
@@ -118,8 +114,6 @@ public:
     // void onMouseReleased(int button, int mods) { std::cout << "Released mouse button: " << button << std::endl; }
 
 private:
-    float FOV = 90.0f, ZNEAR = 0.1f, ZFAR = 30.0f;
-
     Window m_window;
     Trackball m_trackballCamera;
 
