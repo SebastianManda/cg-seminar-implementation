@@ -12,7 +12,6 @@ endif()
 
 add_executable(Implementation
     "src/application.cpp"
-	"src/camera.cpp"
 	"src/mesh.cpp"
     "src/texture.cpp"
 )

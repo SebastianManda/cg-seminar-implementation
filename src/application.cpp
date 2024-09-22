@@ -1,10 +1,10 @@
 //#include "Image.h"
-#include "camera.h"
 #include "mesh.h"
 #include "texture.h"
 // Always include window first (because it includes glfw, which includes GL which needs to be included AFTER glew).
 // Can't wait for modules to fix this stuff...
 #include <framework/disable_all_warnings.h>
+#include <framework/trackball.h>
 
 DISABLE_WARNINGS_PUSH()
 
@@ -31,23 +31,23 @@ public:
     Application()
             : m_window("Final Project", glm::ivec2(1024, 1024), OpenGLVersion::GL45),
               m_texture("resources/checkerboard.png"),
-              m_camera(&m_window, glm::vec3(1.2f, 1.1f, 0.9f) * 2.0f, -glm::vec3(1.2f, 1.1f, 0.9f)) {
-//        m_window.registerKeyCallback([this](int key, int scancode, int action, int mods) {
-//            if (action == GLFW_PRESS)
-//                onKeyPressed(key, mods);
-//            else if (action == GLFW_RELEASE)
-//                onKeyReleased(key, mods);
-//        });
-//        m_window.registerMouseMoveCallback(std::bind(&Application::onMouseMove, this, std::placeholders::_1));
-//        m_window.registerMouseButtonCallback([this](int button, int action, int mods) {
-//            if (action == GLFW_PRESS)
-//                onMouseClicked(button, mods);
-//            else if (action == GLFW_RELEASE)
-//                onMouseReleased(button, mods);
-//        });
-        m_window.registerScrollCallback([&](glm::vec2 offset) {
-            m_camera.zoom(offset.y);
-        });
+              m_trackballCamera(&m_window, 90, 1, 0, 0) {
+        // m_window.registerKeyCallback([this](int key, int scancode, int action, int mods) {
+        //     if (action == GLFW_PRESS)
+        //         onKeyPressed(key, mods);
+        //     else if (action == GLFW_RELEASE)
+        //         onKeyReleased(key, mods);
+        // });
+        // m_window.registerMouseMoveCallback(std::bind(&Application::onMouseMove, this, std::placeholders::_1));
+        // m_window.registerMouseButtonCallback([this](int button, int action, int mods) {
+        //     if (action == GLFW_PRESS)
+        //         onMouseClicked(button, mods);
+        //     else if (action == GLFW_RELEASE)
+        //         onMouseReleased(button, mods);
+        // });
+        // m_window.registerScrollCallback([&](glm::vec2 offset) {
+        //     m_camera.zoom(offset.y);
+        // });
 
         m_meshes = GPUMesh::loadMeshGPU("resources/dragon.obj");
 
@@ -79,15 +79,9 @@ public:
         while (!m_window.shouldClose()) {
             m_window.updateInput();
             gui();
-            m_camera.updateInput();
 
-            m_projectionMatrix = glm::perspective(
-                    glm::radians(m_camera.fov),
-                    m_window.getAspectRatio(),
-                    m_camera.zNear,
-                    m_camera.zFar
-            );
-            m_viewMatrix = m_camera.viewMatrix();
+            m_projectionMatrix = glm::perspective(glm::radians(FOV), m_window.getAspectRatio(), ZNEAR, ZFAR);
+            m_viewMatrix = m_trackballCamera.viewMatrix();
 
             // Clear the screen
             glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -95,8 +89,6 @@ public:
             glEnable(GL_DEPTH_TEST);
 
             const glm::mat4 mvpMatrix = m_projectionMatrix * m_viewMatrix * m_modelMatrix;
-            // Normals should be transformed differently than positions (ignoring translations + dealing with scaling):
-            // https://paroj.github.io/gltut/Illumination/Tut09%20Normal%20Transformation.html
             const glm::mat3 normalModelMatrix = glm::inverseTranspose(glm::mat3(m_modelMatrix));
 
             // Render meshes
@@ -119,42 +111,17 @@ public:
         }
     }
 
-    // In here you can handle key presses
-    // key - Integer that corresponds to numbers in https://www.glfw.org/docs/latest/group__keys.html
-    // mods - Any modifier keys pressed, like shift or control
-    void onKeyPressed(int key, int mods) {
-        std::cout << "Key pressed: " << key << std::endl;
-    }
-
-    // In here you can handle key releases
-    // key - Integer that corresponds to numbers in https://www.glfw.org/docs/latest/group__keys.html
-    // mods - Any modifier keys pressed, like shift or control
-    void onKeyReleased(int key, int mods) {
-        std::cout << "Key released: " << key << std::endl;
-    }
-
-    // If the mouse is moved this function will be called with the x, y screen-coordinates of the mouse
-    void onMouseMove(const glm::dvec2 &cursorPos) {
-        std::cout << "Mouse at position: " << cursorPos.x << " " << cursorPos.y << std::endl;
-    }
-
-    // If one of the mouse buttons is pressed this function will be called
-    // button - Integer that corresponds to numbers in https://www.glfw.org/docs/latest/group__buttons.html
-    // mods - Any modifier buttons pressed
-    void onMouseClicked(int button, int mods) {
-        std::cout << "Pressed mouse button: " << button << std::endl;
-    }
-
-    // If one of the mouse buttons is released this function will be called
-    // button - Integer that corresponds to numbers in https://www.glfw.org/docs/latest/group__buttons.html
-    // mods - Any modifier buttons pressed
-    void onMouseReleased(int button, int mods) {
-        std::cout << "Released mouse button: " << button << std::endl;
-    }
+    // void onKeyPressed(int key, int mods) { std::cout << "Key pressed: " << key << std::endl; }
+    // void onKeyReleased(int key, int mods) { std::cout << "Key released: " << key << std::endl; }
+    // void onMouseMove(const glm::dvec2 &cursorPos) { std::cout << "Mouse at position: " << cursorPos.x << " " << cursorPos.y << std::endl; }
+    // void onMouseClicked(int button, int mods) { std::cout << "Pressed mouse button: " << button << std::endl; }
+    // void onMouseReleased(int button, int mods) { std::cout << "Released mouse button: " << button << std::endl; }
 
 private:
+    float FOV = 90.0f, ZNEAR = 0.1f, ZFAR = 30.0f;
+
     Window m_window;
-    Camera m_camera;
+    Trackball m_trackballCamera;
 
     // Shader for default rendering and for depth rendering
     Shader m_defaultShader;
