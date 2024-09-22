@@ -157,7 +157,10 @@ void Trackball::mouseMoveCallback(const glm::vec2& pos)
 
 void Trackball::mouseScrollCallback(const glm::vec2& offset)
 {
-    // Move the camera closer/further from the look at point when the user scrolls on his/her mousewheel.
-    m_distanceFromLookAt += -float(offset.y) * zoomSpeedFactor;
-    m_distanceFromLookAt = std::clamp(m_distanceFromLookAt, 0.1f, 100.0f);
+    const bool scroll = !m_pWindow->isKeyPressed(GLFW_KEY_LEFT_SHIFT);
+
+    if (scroll) {
+        m_distanceFromLookAt += -float(offset.y) * zoomSpeedFactor;
+        m_distanceFromLookAt = std::clamp(m_distanceFromLookAt, 0.1f, 100.0f);
+    }
 }

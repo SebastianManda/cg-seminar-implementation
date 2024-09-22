@@ -29,9 +29,13 @@ DISABLE_WARNINGS_POP()
 class Application {
 public:
     Application()
-            : m_window("Final Project", glm::ivec2(1024, 1024), OpenGLVersion::GL45),
+            : m_window("CG Seminar Implementation", glm::ivec2(1600, 900), OpenGLVersion::GL45),
               m_texture("resources/checkerboard.png"),
-              m_trackballCamera(&m_window, 90) {
+              m_trackballCamera(&m_window, glm::radians(90.0f)) {
+
+        m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
+            glViewport(0, 0, size.x, size.y);
+        });
         // m_window.registerKeyCallback([this](int key, int scancode, int action, int mods) {
         //     if (action == GLFW_PRESS)
         //         onKeyPressed(key, mods);
@@ -126,7 +130,7 @@ private:
     bool m_useMaterial{true};
 
     // Projection and view matrices for you to fill in and use
-    glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.1f, 30.0f);
+    glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);
     glm::mat4 m_viewMatrix = glm::lookAt(glm::vec3(-1, 1, -1), glm::vec3(0), glm::vec3(0, 1, 0));
     glm::mat4 m_modelMatrix{1.0f};
 };
