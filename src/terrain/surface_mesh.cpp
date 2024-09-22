@@ -12,54 +12,29 @@ DISABLE_WARNINGS_PUSH()
 
 DISABLE_WARNINGS_POP()
 
-SurfaceMesh::SurfaceMesh() : SurfaceMesh(400, 400, 5.0f) {}
-SurfaceMesh::SurfaceMesh(const int width, const int height, const float size) {
-    m_width = width;
-    m_height = height;
-    m_size = size;
+SurfaceMesh::SurfaceMesh() : SurfaceMesh(400, 2.0f) {}
+SurfaceMesh::SurfaceMesh(const int resolution, const float size) {
+    m_resolution = previous_resolution = resolution;
+    m_size = previous_size = size;
     generate();
 }
 
-void SurfaceMesh::setResolution(const int width, const int height) {
-    if (m_width != width || m_height != height) {
-        m_width = width;
-        m_height = height;
+void SurfaceMesh::update() {
+    if (m_resolution != previous_resolution || m_size != previous_size || m_filled != previous_filled) {
+        previous_resolution = m_resolution;
+        previous_size = m_size;
+        previous_filled = m_filled;
         generate();
     }
 }
 
 void SurfaceMesh::generate() {
-    const float x_offset = (m_size * 2) / static_cast<float>(m_width - 1);
-    const float z_offset = (m_size * 2) / static_cast<float>(m_height - 1);
-
     m_vertices.clear();
-    for (int i = 0; i < m_width; i++) {
-        const auto i_f = static_cast<float>(i);
-        for (int j = 0; j < m_height; j++) {
-            const auto j_f = static_cast<float>(j);
-            m_vertices.emplace_back(-m_size + x_offset * i_f, 0.1, -m_size + z_offset * j_f);
-        }
-    }
-
-    // std::cout << "New fucking one" << std::endl;
-    // for (auto vec : vertices) {
-    //     std::cout << glm::to_string(vec) << std::endl;
-    // }
-
     m_faces.clear();
-    for (int i = 0; i < m_width - 1; i++) {
-        for (int j = 0; j < m_height - 1; j++) {
-            int current = i * m_height + j;
-            int above = (i+1) * m_height + j;
-            m_faces.emplace_back(current, current + 1, above + 1);
-            m_faces.emplace_back(above + 1, above, current);
-        }
-    }
+    createVertices(0.0f);
+    createFaces(0);
 
-    // std::cout << "Faces" << std::endl;
-    // for (auto vec : faces) {
-    //     std::cout << glm::to_string(vec) << std::endl;
-    // }
+    if (m_filled) fillSurface();
 
     GLuint vbo;
     glCreateBuffers(1, &vbo);
@@ -76,6 +51,54 @@ void SurfaceMesh::generate() {
     glEnableVertexArrayAttrib(m_vao, 0);
     glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
     glVertexArrayAttribBinding(m_vao, 0, 0);
+}
+
+void SurfaceMesh::createVertices(float y) {
+    const float x_offset = (m_size * 2) / static_cast<float>(m_resolution - 1);
+    const float z_offset = (m_size * 2) / static_cast<float>(m_resolution - 1);
+
+    for (int i = 0; i < m_resolution; i++) {
+        const auto i_f = static_cast<float>(i);
+        for (int j = 0; j < m_resolution; j++) {
+            const auto j_f = static_cast<float>(j);
+            m_vertices.emplace_back(-m_size + x_offset * i_f, y, -m_size + z_offset * j_f);
+        }
+    }
+}
+
+void SurfaceMesh::createFaces(int startingIndex) {
+    for (int i = 0; i < m_resolution - 1; i++) {
+        for (int j = 0; j < m_resolution - 1; j++) {
+            int current = startingIndex + i * m_resolution + j;
+            int above = current + m_resolution;
+            m_faces.emplace_back(current, current + 1, above + 1);
+            m_faces.emplace_back(above + 1, above, current);
+        }
+    }
+}
+
+void SurfaceMesh::fillSurface() {
+    auto sizeVertices = m_vertices.size();
+    createVertices(-0.05f);
+    createFaces(static_cast<int>(sizeVertices));
+
+    for (int i = 0; i < m_resolution - 1; i++) {
+        int current = i;
+        m_faces.emplace_back(current, current + 1, sizeVertices + current + 1);
+        m_faces.emplace_back(sizeVertices + current + 1, sizeVertices + current, current);
+
+        current = (m_resolution - 1) * m_resolution + i;
+        m_faces.emplace_back(current, current + 1, sizeVertices + current + 1);
+        m_faces.emplace_back(sizeVertices + current + 1, sizeVertices + current, current);
+
+        current = i * m_resolution;
+        m_faces.emplace_back(current, current + m_resolution, sizeVertices + current + m_resolution);
+        m_faces.emplace_back(sizeVertices + current + m_resolution, sizeVertices + current, current);
+
+        current = i * m_resolution + m_resolution - 1;
+        m_faces.emplace_back(current, current + m_resolution, sizeVertices + current + m_resolution);
+        m_faces.emplace_back(sizeVertices + current + m_resolution, sizeVertices + current, current);
+    }
 }
 
 void SurfaceMesh::draw() const {

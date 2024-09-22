@@ -32,9 +32,8 @@ class Application {
 public:
     Application()
             : m_window("CG Seminar Implementation", glm::ivec2(1600, 900), OpenGLVersion::GL45),
-              m_texture("resources/PerlinNoisePatterns.jpg"),
-              m_trackballCamera(&m_window, glm::radians(90.0f)),
-              m_terrain(1024, 1024, 1.0f) {
+              m_texture("resources/phasorNoise.png"),
+              m_trackballCamera(&m_window, glm::radians(90.0f)) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
             glViewport(0, 0, size.x, size.y);
@@ -80,6 +79,7 @@ public:
 
             m_projectionMatrix = m_trackballCamera.projectionMatrix();
             m_viewMatrix = m_trackballCamera.viewMatrix();
+            m_surfaceMesh.update();
 
             // Clear the screen
             glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -97,8 +97,10 @@ public:
                 glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
                 m_texture.bind(GL_TEXTURE0);
                 glUniform1i(3, 0);
+                glUniform1f(4, heightScale);
+                glUniform1f(5, m_surfaceMesh.m_size);
 
-                m_terrain.draw();
+                m_surfaceMesh.draw();
             }
 
             m_window.swapBuffers();
@@ -108,11 +110,11 @@ public:
     void gui() {
         ImGui::Begin("Window");
         ImGui::Checkbox("Camera can translate", &m_trackballCamera.m_canTranslate);
-        ImGui::DragInt("terrain x", &m_terrain_x, 2, 1000);
-        ImGui::DragInt("terrain y", &m_terrain_y, 2, 1000);
-        if (ImGui::Button("Generate")) {
-            m_terrain.setResolution(m_terrain_x, m_terrain_y);
-        }
+        ImGui::Text("Surface Mesh Options");
+        ImGui::Checkbox("Filled", &m_surfaceMesh.m_filled);
+        ImGui::SliderFloat("Height Scale", &heightScale, 0.01f, 1.0f);
+        ImGui::SliderFloat("Mesh Size", &m_surfaceMesh.m_size, 1.0f, 50.0f);
+        ImGui::DragInt("Vertex resoluition", &m_surfaceMesh.m_resolution, 1, 2, 2000);
         ImGui::End();
     }
 
@@ -134,9 +136,8 @@ private:
     Texture m_texture;
     bool m_useMaterial{true};
 
-    SurfaceMesh m_terrain;
-    int m_terrain_x = 1024;
-    int m_terrain_y = 1024;
+    SurfaceMesh m_surfaceMesh;
+    float heightScale = 1.0f;
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);
