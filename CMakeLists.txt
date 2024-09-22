@@ -14,6 +14,7 @@ add_executable(Implementation
     "src/application.cpp"
 	"src/mesh.cpp"
     "src/texture.cpp"
+	"src/terrain/surface_mesh.cpp"
 )
 target_compile_features(Implementation PRIVATE cxx_std_20)
 target_link_libraries(Implementation PRIVATE CGFramework)

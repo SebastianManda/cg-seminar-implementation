@@ -3,6 +3,7 @@
 layout(location = 0) uniform mat4 mvpMatrix;
 layout(location = 1) uniform mat4 modelMatrix;
 layout(location = 2) uniform mat3 normalModelMatrix;
+layout(location = 3) uniform sampler2D heights;
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
@@ -20,14 +21,17 @@ out float fragShininess;
 out float fragRoughness;
 out vec2 fragTexCoord;
 
-void main()
-{
-    gl_Position = mvpMatrix * vec4(position, 1);
-    
-    fragPos = (modelMatrix * vec4(position, 1)).xyz;
-    fragNormal = normalModelMatrix * normal;
-    fragKd = kd;
-    fragKs = ks;
+
+void main() {
+    vec2 texPos = vec2((position.x + 1.0) / 2, (position.z + 1.0) / 2);
+    vec3 newPos = vec3(position.x, texture(heights, texPos).r * 0.2, position.z);
+
+    gl_Position = mvpMatrix * vec4(newPos, 1);
+
+    fragPos = (modelMatrix * vec4(newPos, 1)).xyz;
+    fragNormal = vec3(0, 1, 0);
+    fragKd = vec3(0, 0.5, 0) * texture(heights, texPos).r + vec3(0, 0, 0.5) * (1 - texture(heights, texPos).r);
+    fragKs = vec3(0.3, 0.3, 0.3);
     fragShininess = shininess;
     fragRoughness = roughness;
     fragTexCoord = texCoord;

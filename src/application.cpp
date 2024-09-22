@@ -6,6 +6,8 @@
 #include <framework/disable_all_warnings.h>
 #include <framework/trackball.h>
 
+#include "terrain/surface_mesh.h"
+
 DISABLE_WARNINGS_PUSH()
 
 #include <glad/glad.h>
@@ -30,8 +32,9 @@ class Application {
 public:
     Application()
             : m_window("CG Seminar Implementation", glm::ivec2(1600, 900), OpenGLVersion::GL45),
-              m_texture("resources/checkerboard.png"),
-              m_trackballCamera(&m_window, glm::radians(90.0f)) {
+              m_texture("resources/PerlinNoisePatterns.jpg"),
+              m_trackballCamera(&m_window, glm::radians(90.0f)),
+              m_terrain(1024, 1024, 1.0f) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
             glViewport(0, 0, size.x, size.y);
@@ -57,7 +60,8 @@ public:
 
         try {
             ShaderBuilder defaultBuilder;
-            defaultBuilder.addStage(GL_VERTEX_SHADER, "shaders/shader_vert.glsl");
+            // defaultBuilder.addStage(GL_VERTEX_SHADER, "shaders/shader_vert.glsl");
+            defaultBuilder.addStage(GL_VERTEX_SHADER, "shaders/surface_vert.glsl");
             defaultBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/shader_frag.glsl");
             m_defaultShader = defaultBuilder.build();
 
@@ -91,14 +95,10 @@ public:
                 glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
                 glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
                 glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-                if (mesh.hasTextureCoords()) {
-                    m_texture.bind(GL_TEXTURE0);
-                    glUniform1i(3, 0);
-                    glUniform1i(4, GL_TRUE);
-                } else {
-                    glUniform1i(4, GL_FALSE);
-                }
-                mesh.draw(m_defaultShader);
+                m_texture.bind(GL_TEXTURE0);
+                glUniform1i(3, 0);
+
+                m_terrain.draw();
             }
 
             m_window.swapBuffers();
@@ -107,7 +107,12 @@ public:
 
     void gui() {
         ImGui::Begin("Window");
-        ImGui::Checkbox("Camera can translate:", &m_trackballCamera.m_canTranslate);
+        ImGui::Checkbox("Camera can translate", &m_trackballCamera.m_canTranslate);
+        ImGui::DragInt("terrain x", &m_terrain_x, 2, 1000);
+        ImGui::DragInt("terrain y", &m_terrain_y, 2, 1000);
+        if (ImGui::Button("Generate")) {
+            m_terrain.setResolution(m_terrain_x, m_terrain_y);
+        }
         ImGui::End();
     }
 
@@ -128,6 +133,10 @@ private:
     std::vector<GPUMesh> m_meshes;
     Texture m_texture;
     bool m_useMaterial{true};
+
+    SurfaceMesh m_terrain;
+    int m_terrain_x = 1024;
+    int m_terrain_y = 1024;
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);
