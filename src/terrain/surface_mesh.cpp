@@ -54,14 +54,15 @@ void SurfaceMesh::generate() {
 }
 
 void SurfaceMesh::createVertices(float y) {
-    const float x_offset = (m_size * 2) / static_cast<float>(m_resolution - 1);
-    const float z_offset = (m_size * 2) / static_cast<float>(m_resolution - 1);
+    const float margin_offset = m_size * 0.005f;
+    const float offset = (m_size * 2 - 2 * margin_offset) / static_cast<float>(m_resolution - 1);
+    const float start_offset = margin_offset - m_size;
 
     for (int i = 0; i < m_resolution; i++) {
         const auto i_f = static_cast<float>(i);
         for (int j = 0; j < m_resolution; j++) {
             const auto j_f = static_cast<float>(j);
-            m_vertices.emplace_back(-m_size + x_offset * i_f, y, -m_size + z_offset * j_f);
+            m_vertices.emplace_back(start_offset + offset * i_f, y, start_offset + offset * j_f);
         }
     }
 }

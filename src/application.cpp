@@ -32,7 +32,7 @@ class Application {
 public:
     Application()
             : m_window("CG Seminar Implementation", glm::ivec2(1600, 900), OpenGLVersion::GL45),
-              m_texture("resources/phasorNoise.png"),
+              m_texture("resources/terrains/terrain_test_HR.png"),
               m_trackballCamera(&m_window, glm::radians(90.0f)) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
@@ -82,7 +82,7 @@ public:
             m_surfaceMesh.update();
 
             // Clear the screen
-            glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+            glClearColor(0.57f, 0.76f, 0.98f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
 
@@ -99,6 +99,7 @@ public:
                 glUniform1i(3, 0);
                 glUniform1f(4, heightScale);
                 glUniform1f(5, m_surfaceMesh.m_size);
+                glUniform3fv(6, 1, glm::value_ptr(m_trackballCamera.position()));
 
                 m_surfaceMesh.draw();
             }
