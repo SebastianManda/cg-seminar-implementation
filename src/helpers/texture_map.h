@@ -6,11 +6,11 @@ DISABLE_WARNINGS_PUSH()
 #include <glad/glad.h>
 DISABLE_WARNINGS_POP()
 
-class AmplitudeMap {
+class TextureMap {
 public:
-    AmplitudeMap();
-    AmplitudeMap(glm::ivec2 res);
-    ~AmplitudeMap();
+    TextureMap();
+    TextureMap(glm::ivec2 res);
+    ~TextureMap();
 
     void Init();
 
@@ -22,5 +22,5 @@ public:
 
 private:
     GLuint m_fbo{0};
-    GLuint m_amplitudeMap{0};
+    GLuint m_map{0};
 };

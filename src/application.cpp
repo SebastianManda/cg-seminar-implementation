@@ -6,7 +6,7 @@
 #include <framework/disable_all_warnings.h>
 #include <framework/trackball.h>
 
-#include "helpers/amplitude_map.h"
+#include "helpers/texture_map.h"
 #include "terrain/surface_mesh.h"
 
 DISABLE_WARNINGS_PUSH()
@@ -162,7 +162,7 @@ private:
     Shader m_shadowShader;
 
     Texture m_h;
-    AmplitudeMap m_amplitudeMap;
+    TextureMap m_amplitudeMap;
 
     SurfaceMesh m_surfaceMesh;
     float m_heightScale{1.0f};
