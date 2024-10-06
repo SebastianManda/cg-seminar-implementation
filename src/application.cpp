@@ -98,7 +98,7 @@ public:
                 m_texture.bind(GL_TEXTURE0);
                 glUniform1i(3, 0);
                 glUniform1f(4, heightScale);
-                glUniform1f(5, m_surfaceMesh.m_size);
+                glUniform1f(5, meshScale);
                 glUniform3fv(6, 1, glm::value_ptr(m_trackballCamera.position()));
 
                 m_surfaceMesh.draw();
@@ -114,7 +114,7 @@ public:
         ImGui::Text("Surface Mesh Options");
         ImGui::Checkbox("Filled", &m_surfaceMesh.m_filled);
         ImGui::SliderFloat("Height Scale", &heightScale, 0.01f, 1.0f);
-        ImGui::SliderFloat("Mesh Size", &m_surfaceMesh.m_size, 1.0f, 50.0f);
+        ImGui::SliderFloat("Mesh Size", &meshScale, 1.0f, 20.0f);
         ImGui::DragInt("Vertex resoluition", &m_surfaceMesh.m_resolution, 1, 2, 2000);
         ImGui::End();
     }
@@ -139,6 +139,7 @@ private:
 
     SurfaceMesh m_surfaceMesh;
     float heightScale = 1.0f;
+    float meshScale = 2.5f;
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);

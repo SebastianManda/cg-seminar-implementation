@@ -5,7 +5,7 @@ layout(location = 1) uniform mat4 modelMatrix;
 layout(location = 2) uniform mat3 normalModelMatrix;
 layout(location = 3) uniform sampler2D heights;
 layout(location = 4) uniform float heightScale;
-layout(location = 5) uniform float meshSize;
+layout(location = 5) uniform float meshScale;
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
@@ -36,16 +36,12 @@ vec3 computeStepKd(float h) {
     else return c3 + (c4 - c3) * (h - 0.75) * 4.0;
 }
 
-vec2 computeTexPos(vec3 pos) {
-    return vec2((pos.x + meshSize) / (2 * meshSize), (pos.z + meshSize) / (2 * meshSize));
-}
-
 vec3 computeNewPos(vec3 pos) {
-    return vec3(pos.x, texture(heights, computeTexPos(pos)).x * heightScale, pos.z);
+    return vec3(pos.x, texture(heights, vec2((position.x + 1) / 2, (position.z + 1) / 2)).x * heightScale, pos.z);
 }
 
 vec3 computeNormal(vec2 texPos) {
-    float offset = meshSize * 1.995f / 399.0f;
+    float offset = 1.995f / 399.0f;
 
     vec3 pos = vec3(position.x, 0, position.z);
     vec3 posL = computeNewPos(vec3(position.x - offset, 0, position.z));
@@ -67,9 +63,9 @@ vec3 computeNormal(vec2 texPos) {
 }
 
 void main() {
-    vec2 texPos = computeTexPos(position);
-    vec3 newPos = vec3(position.x, texture(heights, texPos).x * heightScale, position.z);
-    newPos = position.y < 0 ? position : newPos;
+    vec2 texPos = vec2((position.x + 1) / 2, (position.z + 1) / 2);
+    vec3 newPos = vec3(position.x * meshScale, texture(heights, texPos).x * heightScale, position.z * meshScale);
+    newPos = position.y < 0 ? vec3(position.x * meshScale, position.y, position.z * meshScale) : newPos;
     vec3 kd = position.y < 0 ? c0 : computeStepKd(newPos.y / heightScale);
 
     gl_Position = mvpMatrix * vec4(newPos, 1);

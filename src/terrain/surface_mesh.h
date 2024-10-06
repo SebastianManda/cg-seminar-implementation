@@ -8,14 +8,13 @@ DISABLE_WARNINGS_POP()
 class SurfaceMesh {
 public:
     SurfaceMesh();
-    SurfaceMesh(int resolution, float size);
+    SurfaceMesh(int resolution);
 
     void update();
     void draw() const;
 
 public:
     int m_resolution {400};
-    float m_size {2.0f};
     bool m_filled {false};
 
 private:
@@ -29,6 +28,5 @@ private:
     std::vector<glm::vec3> m_vertices;
     std::vector<glm::uvec3> m_faces;
     int previous_resolution;
-    float previous_size;
     bool previous_filled {false};
 };

@@ -29,8 +29,8 @@ float blinnPhong() {
 void main()
 {
     const vec3 normal = normalize(fragNormal);
-//    fragColor = vec4(fragKd, 1);
-    fragColor = vec4(lambert() * fragKd, 1);
+    fragColor = vec4(fragKd, 1);
+//    fragColor = vec4(lambert() * fragKd, 1);
 //    fragColor = vec4(lambert() * fragKd + blinnPhong() * fragKs, 1);
 //    fragColor = vec4(vec3(blinnPhong()), 1);
 }
