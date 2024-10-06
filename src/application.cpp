@@ -6,6 +6,7 @@
 #include <framework/disable_all_warnings.h>
 #include <framework/trackball.h>
 
+#include "helpers/amplitude_map.h"
 #include "terrain/surface_mesh.h"
 
 DISABLE_WARNINGS_PUSH()
@@ -32,7 +33,7 @@ class Application {
 public:
     Application()
             : m_window("CG Seminar Implementation", glm::ivec2(1600, 900), OpenGLVersion::GL45),
-              m_texture("resources/terrains/terrain_test_HR.png"),
+              m_h("resources/terrains/terrain_test_HR.png"),
               m_trackballCamera(&m_window, glm::radians(90.0f)) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
@@ -55,6 +56,8 @@ public:
         //     m_camera.zoom(offset.y);
         // });
 
+        // INIT MAPS
+        m_amplitudeMap.Init();
 
         try {
             ShaderBuilder defaultBuilder;
@@ -63,9 +66,20 @@ public:
             defaultBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/shader_frag.glsl");
             m_defaultShader = defaultBuilder.build();
 
-            ShaderBuilder shadowBuilder;
-            shadowBuilder.addStage(GL_VERTEX_SHADER, "shaders/shadow_vert.glsl");
-            m_shadowShader = shadowBuilder.build();
+            ShaderBuilder texBuilder;
+            texBuilder.addStage(GL_VERTEX_SHADER, "shaders/quad_vert.glsl");
+            texBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/texture_frag.glsl");
+            m_textureShader = texBuilder.build();
+
+            ShaderBuilder amplitudeBuilder;
+            amplitudeBuilder.addStage(GL_VERTEX_SHADER, "shaders/quad_vert.glsl");
+            amplitudeBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/amplitude_frag.glsl");
+            m_amplitudeShader = amplitudeBuilder.build();
+
+
+            // ShaderBuilder shadowBuilder;
+            // shadowBuilder.addStage(GL_VERTEX_SHADER, "shaders/shadow_vert.glsl");
+            // m_shadowShader = shadowBuilder.build();
         } catch (ShaderLoadingException e) {
             std::cerr << e.what() << std::endl;
         }
@@ -80,20 +94,28 @@ public:
             m_viewMatrix = m_trackballCamera.viewMatrix();
             m_surfaceMesh.update();
 
-            // Clear the screen
+            const glm::mat4 mvpMatrix = m_projectionMatrix * m_viewMatrix * m_modelMatrix;
+            const glm::mat3 normalModelMatrix = glm::inverseTranspose(glm::mat3(m_modelMatrix));
+
+            // Render amplitude map
+            m_amplitudeMap.bindWrite();
+            m_amplitudeShader.bind();
+            m_h.bind(GL_TEXTURE0);
+            glUniform1i(1, 0);
+            drawEmpty();
+
+            glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+            glViewport( 0, 0, m_window.getWindowSize().x, m_window.getWindowSize().y);
             glClearColor(0.57f, 0.76f, 0.98f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
 
-            const glm::mat4 mvpMatrix = m_projectionMatrix * m_viewMatrix * m_modelMatrix;
-            const glm::mat3 normalModelMatrix = glm::inverseTranspose(glm::mat3(m_modelMatrix));
-
-            // Render mesh
+            // // Render mesh
             m_defaultShader.bind();
             glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
             glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
             glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-            m_texture.bind(GL_TEXTURE0);
+            m_amplitudeMap.bindRead(GL_TEXTURE0);
             glUniform1i(3, 0);
             glUniform3fv(4, 1, glm::value_ptr(glm::vec3(m_heightScale, m_meshScale, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
@@ -116,6 +138,13 @@ public:
         ImGui::End();
     }
 
+    void drawEmpty() {
+        GLuint emptyVAO;
+        glGenVertexArrays(1, &emptyVAO);
+        glBindVertexArray(emptyVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    }
+
     // void onKeyPressed(int key, int mods) { std::cout << "Key pressed: " << key << std::endl; }
     // void onKeyReleased(int key, int mods) { std::cout << "Key released: " << key << std::endl; }
     // void onMouseMove(const glm::dvec2 &cursorPos) { std::cout << "Mouse at position: " << cursorPos.x << " " << cursorPos.y << std::endl; }
@@ -128,14 +157,17 @@ private:
 
     // Shader for default rendering and for depth rendering
     Shader m_defaultShader;
+    Shader m_textureShader;
+    Shader m_amplitudeShader;
     Shader m_shadowShader;
 
-    Texture m_texture;
+    Texture m_h;
+    AmplitudeMap m_amplitudeMap;
 
     SurfaceMesh m_surfaceMesh;
     float m_heightScale{1.0f};
     float m_meshScale{2.5f};
-    bool m_useColor{true};
+    bool m_useColor{false};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);

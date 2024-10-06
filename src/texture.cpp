@@ -7,8 +7,7 @@ DISABLE_WARNINGS_POP()
 
 #include <iostream>
 
-Texture::Texture(std::filesystem::path filePath)
-{
+Texture::Texture(std::filesystem::path filePath) {
     // Load image from disk to CPU memory.
     // Image class is defined in <framework/image.h>
     Image cpuTexture { filePath };
@@ -47,20 +46,20 @@ Texture::Texture(std::filesystem::path filePath)
     glTextureParameteri(m_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
-Texture::Texture(Texture&& other)
-    : m_texture(other.m_texture)
-{
+Texture::Texture() {
+    // Create a texture on the GPU
+    glCreateTextures(GL_TEXTURE_2D, 1, &m_texture);
+}
+
+Texture::Texture(Texture&& other) : m_texture(other.m_texture) {
     other.m_texture = INVALID;
 }
 
-Texture::~Texture()
-{
-    if (m_texture != INVALID)
-        glDeleteTextures(1, &m_texture);
+Texture::~Texture() {
+    if (m_texture != INVALID) glDeleteTextures(1, &m_texture);
 }
 
-void Texture::bind(GLint textureSlot)
-{
+void Texture::bind(GLint textureSlot) {
     glActiveTexture(textureSlot);
     glBindTexture(GL_TEXTURE_2D, m_texture);
 }

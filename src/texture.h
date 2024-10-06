@@ -16,6 +16,7 @@ public:
     Texture(std::filesystem::path filePath);
     Texture(const Texture&) = delete;
     Texture(Texture&&);
+    Texture();
     ~Texture();
 
     Texture& operator=(const Texture&) = delete;
