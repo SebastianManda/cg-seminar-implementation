@@ -4,8 +4,7 @@ layout(location = 0) uniform mat4 mvpMatrix;
 layout(location = 1) uniform mat4 modelMatrix;
 layout(location = 2) uniform mat3 normalModelMatrix;
 layout(location = 3) uniform sampler2D heights;
-layout(location = 4) uniform float heightScale;
-layout(location = 5) uniform float meshScale;
+layout(location = 4) uniform vec3 meshSettings;
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
@@ -28,6 +27,10 @@ const vec3 c1 = vec3(101/255.0, 90/255.0, 31/255.0); // 0.25
 const vec3 c2 = vec3(113/255.0, 94/255.0, 52/255.0); // 0.5
 const vec3 c3 = vec3(107/255.0, 75/255.0, 32/255.0); // 0.75
 const vec3 c4 = vec3(42/148.0, 29/255.0, 8/255.0); // 1.0
+
+const float heightScale = meshSettings.x;
+const float meshScale = meshSettings.y;
+const bool useColor = meshSettings.z == 1.0 ? true : false;
 
 vec3 computeStepKd(float h) {
     if (h < 0.25) return c0 + (c1 - c0) * h * 4.0;
@@ -66,7 +69,7 @@ void main() {
     vec2 texPos = vec2((position.x + 1) / 2, (position.z + 1) / 2);
     vec3 newPos = vec3(position.x * meshScale, texture(heights, texPos).x * heightScale, position.z * meshScale);
     newPos = position.y < 0 ? vec3(position.x * meshScale, position.y, position.z * meshScale) : newPos;
-    vec3 kd = position.y < 0 ? c0 : computeStepKd(newPos.y / heightScale);
+    vec3 kd = position.y < 0 ? (useColor ? c0 : vec3(0)) : useColor ? computeStepKd(newPos.y / heightScale) : vec3(texture(heights, texPos).x);
 
     gl_Position = mvpMatrix * vec4(newPos, 1);
 

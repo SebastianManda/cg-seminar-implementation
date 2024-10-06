@@ -55,7 +55,6 @@ public:
         //     m_camera.zoom(offset.y);
         // });
 
-        m_meshes = GPUMesh::loadMeshGPU("resources/dragon.obj");
 
         try {
             ShaderBuilder defaultBuilder;
@@ -89,20 +88,17 @@ public:
             const glm::mat4 mvpMatrix = m_projectionMatrix * m_viewMatrix * m_modelMatrix;
             const glm::mat3 normalModelMatrix = glm::inverseTranspose(glm::mat3(m_modelMatrix));
 
-            // Render meshes
-            for (GPUMesh &mesh: m_meshes) {
-                m_defaultShader.bind();
-                glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
-                glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
-                glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-                m_texture.bind(GL_TEXTURE0);
-                glUniform1i(3, 0);
-                glUniform1f(4, heightScale);
-                glUniform1f(5, meshScale);
-                glUniform3fv(6, 1, glm::value_ptr(m_trackballCamera.position()));
+            // Render mesh
+            m_defaultShader.bind();
+            glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
+            glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
+            glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
+            m_texture.bind(GL_TEXTURE0);
+            glUniform1i(3, 0);
+            glUniform3fv(4, 1, glm::value_ptr(glm::vec3(m_heightScale, m_meshScale, m_useColor)));
+            glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
 
-                m_surfaceMesh.draw();
-            }
+            m_surfaceMesh.draw();
 
             m_window.swapBuffers();
         }
@@ -112,9 +108,10 @@ public:
         ImGui::Begin("Window");
         ImGui::Checkbox("Camera can translate", &m_trackballCamera.m_canTranslate);
         ImGui::Text("Surface Mesh Options");
+        ImGui::Checkbox("Color", &m_useColor);
         ImGui::Checkbox("Filled", &m_surfaceMesh.m_filled);
-        ImGui::SliderFloat("Height Scale", &heightScale, 0.01f, 1.0f);
-        ImGui::SliderFloat("Mesh Size", &meshScale, 1.0f, 20.0f);
+        ImGui::SliderFloat("Height Scale", &m_heightScale, 0.01f, 2.0f);
+        ImGui::SliderFloat("Mesh Size", &m_meshScale, 1.0f, 20.0f);
         ImGui::DragInt("Vertex resoluition", &m_surfaceMesh.m_resolution, 1, 2, 2000);
         ImGui::End();
     }
@@ -133,13 +130,12 @@ private:
     Shader m_defaultShader;
     Shader m_shadowShader;
 
-    std::vector<GPUMesh> m_meshes;
     Texture m_texture;
-    bool m_useMaterial{true};
 
     SurfaceMesh m_surfaceMesh;
-    float heightScale = 1.0f;
-    float meshScale = 2.5f;
+    float m_heightScale{1.0f};
+    float m_meshScale{2.5f};
+    bool m_useColor{true};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);

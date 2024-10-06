@@ -1,6 +1,6 @@
 #version 450
 
-layout(location = 6) uniform vec3 viewPos;
+layout(location = 5) uniform vec3 viewPos;
 
 in vec3 fragPos;
 in vec3 fragNormal;
