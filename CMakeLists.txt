@@ -18,6 +18,8 @@ add_executable(Implementation
 	"src/helpers/texture_map.cpp"
 		src/helpers/amplitude.cpp
 		src/helpers/amplitude.h
+		src/helpers/orientation.cpp
+		src/helpers/orientation.h
 )
 target_compile_features(Implementation PRIVATE cxx_std_20)
 target_link_libraries(Implementation PRIVATE CGFramework)

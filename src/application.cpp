@@ -8,6 +8,7 @@
 #include <framework/trackball.h>
 
 #include "helpers/amplitude.h"
+#include "helpers/orientation.h"
 #include "terrain/surface_mesh.h"
 
 DISABLE_WARNINGS_PUSH()
@@ -40,7 +41,9 @@ public:
               m_terrain1("resources/terrains/terrain_test_HR.png"),
               m_terrain2("resources/terrains/zoom_appalache_20km.png"),
               m_amplitude1(m_terrain1.getData()),
-              m_amplitude2(m_terrain2.getData()) {
+              m_amplitude2(m_terrain2.getData()),
+              m_orientation1(m_terrain1.getData()),
+              m_orientation2(m_terrain2.getData()) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
             glViewport(0, 0, size.x, size.y);
@@ -63,7 +66,7 @@ public:
         // });
 
         // INIT MAPS
-        m_amplitudeMap.Init();
+        // m_amplitudeMap.Init();
 
         try {
             ShaderBuilder defaultBuilder;
@@ -94,6 +97,8 @@ public:
     void preprocessing() {
         m_amplitude1.process();
         m_amplitude2.process();
+        m_orientation1.process();
+        m_orientation2.process();
     }
 
     void update() {
@@ -109,11 +114,11 @@ public:
             const glm::mat3 normalModelMatrix = glm::inverseTranspose(glm::mat3(m_modelMatrix));
 
             // Render amplitude map
-            m_amplitudeMap.bindWrite();
-            m_amplitudeShader.bind();
-            m_terrain1.bind(GL_TEXTURE0);
-            glUniform1i(1, 0);
-            drawEmpty();
+            // m_amplitudeMap.bindWrite();
+            // m_amplitudeShader.bind();
+            // m_terrain1.bind(GL_TEXTURE0);
+            // glUniform1i(1, 0);
+            // drawEmpty();
 
             glBindFramebuffer( GL_FRAMEBUFFER, 0 );
             glViewport( 0, 0, m_window.getWindowSize().x, m_window.getWindowSize().y);
@@ -129,19 +134,24 @@ public:
             glUniform3fv(4, 1, glm::value_ptr(glm::vec3(m_heightScale, m_meshScale, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
             glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_riversMult, m_riversThreshold)));
-            glUniform1i(8, m_useAmplitude);
+            glUniform1i(8, m_useAmplitude || m_useGradient );
+            glUniform1i(9, m_useOrientation);
 
             if (m_currentTerrain == 0) {
                 m_terrain1.bind(GL_TEXTURE0);
                 glUniform1i(3, 0);
                 if (m_useRivers) m_amplitude1.m_drainageMap.bindRead(GL_TEXTURE1);
                 if (m_useAmplitude) m_amplitude1.m_amplitudeMap.bindRead(GL_TEXTURE1);
+                if (m_useGradient) m_orientation1.m_gradientMap.bindRead(GL_TEXTURE1);
+                if (m_useOrientation) m_orientation1.m_orientationMap.bindRead(GL_TEXTURE1);
                 glUniform1i(6, 1);
             } else {
                 m_terrain2.bind(GL_TEXTURE0);
                 glUniform1i(3, 0);
                 if (m_useRivers) m_amplitude2.m_drainageMap.bindRead(GL_TEXTURE1);
                 if (m_useAmplitude) m_amplitude2.m_amplitudeMap.bindRead(GL_TEXTURE1);
+                if (m_useGradient) m_orientation2.m_gradientMap.bindRead(GL_TEXTURE1);
+                if (m_useOrientation) m_orientation2.m_orientationMap.bindRead(GL_TEXTURE1);
                 glUniform1i(6, 1);
             }
 
@@ -173,6 +183,8 @@ public:
             if (m_currentTerrain == 0) m_amplitude1.compute(m_riversThreshold, m_amplitudeIncr);
             else m_amplitude2.compute(m_riversThreshold, m_amplitudeIncr);
         }
+        ImGui::Checkbox("Gradient", &m_useGradient);
+        ImGui::Checkbox("Orientation", &m_useOrientation);
         ImGui::End();
     }
 
@@ -203,8 +215,8 @@ private:
     Texture m_terrain2;
     Amplitude m_amplitude1;
     Amplitude m_amplitude2;
-
-    TextureMap m_amplitudeMap;
+    Orientation m_orientation1;
+    Orientation m_orientation2;
 
     SurfaceMesh m_surfaceMesh;
     float m_heightScale{1.0f};
@@ -216,6 +228,8 @@ private:
     float m_riversThreshold{0.6f};
     bool m_useAmplitude{false};
     float m_amplitudeIncr{0.04f};
+    bool m_useGradient{false};
+    bool m_useOrientation{false};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);

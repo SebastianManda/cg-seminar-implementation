@@ -1,3 +1,6 @@
+#ifndef TextureMap_C
+#define TextureMap_C
+
 #include <vector>
 #include <framework/disable_all_warnings.h>
 #include <glm/vec2.hpp>
@@ -26,3 +29,5 @@ private:
     GLuint m_fbo{0};
     GLuint m_map{0};
 };
+
+#endif
