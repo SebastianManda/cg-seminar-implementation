@@ -29,6 +29,8 @@ public:
     Amplitude(std::vector<float> dem);
 
     void process();
+    void compute(float threshold, float increment);
+
 
 public:
     TextureMap m_amplitudeMap;
@@ -40,11 +42,12 @@ private:
     void computeAccumulation();
     void computeAccumulationHelper(int index);
 
-    std::vector<int> getNeighbours(int index);
+    std::vector<int> getNeighbours(int index, bool diagonal);
 
 private:
     std::vector<float> m_dem;
-    int m_res;
-    std::vector<int> m_flows;
     std::vector<float> m_accumulation;
+    std::vector<float> m_amplitudes;
+    std::vector<int> m_flows;
+    int m_res;
 };

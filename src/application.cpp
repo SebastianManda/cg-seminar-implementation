@@ -129,16 +129,19 @@ public:
             glUniform3fv(4, 1, glm::value_ptr(glm::vec3(m_heightScale, m_meshScale, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
             glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_riversMult, m_riversThreshold)));
+            glUniform1i(8, m_useAmplitude);
 
             if (m_currentTerrain == 0) {
                 m_terrain1.bind(GL_TEXTURE0);
                 glUniform1i(3, 0);
-                m_amplitude1.m_drainageMap.bindRead(GL_TEXTURE1);
+                if (m_useRivers) m_amplitude1.m_drainageMap.bindRead(GL_TEXTURE1);
+                if (m_useAmplitude) m_amplitude1.m_amplitudeMap.bindRead(GL_TEXTURE1);
                 glUniform1i(6, 1);
             } else {
                 m_terrain2.bind(GL_TEXTURE0);
                 glUniform1i(3, 0);
-                m_amplitude2.m_drainageMap.bindRead(GL_TEXTURE1);
+                if (m_useRivers) m_amplitude2.m_drainageMap.bindRead(GL_TEXTURE1);
+                if (m_useAmplitude) m_amplitude2.m_amplitudeMap.bindRead(GL_TEXTURE1);
                 glUniform1i(6, 1);
             }
 
@@ -164,6 +167,12 @@ public:
         ImGui::Checkbox("Rivers", &m_useRivers);
         ImGui::SliderFloat("Rivers Mult", &m_riversMult, 0.0f, 10.0f);
         ImGui::SliderFloat("Rivers Threshold", &m_riversThreshold, 0.0f, 2.0f);
+        ImGui::Checkbox("Amplitude", &m_useAmplitude);
+        ImGui::InputFloat("Amplitude Increment", &m_amplitudeIncr);
+        if (ImGui::Button("Recompute Amplitude")) {
+            if (m_currentTerrain == 0) m_amplitude1.compute(m_riversThreshold, m_amplitudeIncr);
+            else m_amplitude2.compute(m_riversThreshold, m_amplitudeIncr);
+        }
         ImGui::End();
     }
 
@@ -204,7 +213,9 @@ private:
     int m_currentTerrain{0};
     bool m_useRivers{false};
     float m_riversMult{2.0f};
-    float m_riversThreshold{0.2f};
+    float m_riversThreshold{0.6f};
+    bool m_useAmplitude{false};
+    float m_amplitudeIncr{0.04f};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);

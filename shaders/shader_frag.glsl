@@ -3,6 +3,7 @@
 layout(location = 5) uniform vec3 viewPos;
 layout(location = 6) uniform sampler2D tex;
 layout(location = 7) uniform vec3 riverOptions;
+layout(location = 8) uniform bool useTextureCoords;
 
 in vec3 fragPos;
 in vec3 fragNormal;
@@ -37,9 +38,10 @@ void main()
 
     vec3 kd = fragKd;
     if (useRiver) {
-        if (texture(tex, fragTexCoord).x > riverThreshold)
-            kd = vec3(0, 0, texture(tex, fragTexCoord).x * rivelMultiplier);
+        if (texture(tex, fragTexCoord).r > riverThreshold)
+            kd = vec3(0, 0, texture(tex, fragTexCoord).r * rivelMultiplier);
     }
+    if (useTextureCoords) kd = vec3(texture(tex, fragTexCoord).r);
     if (fragPos.y < 0.0) kd = fragKd;
 
     fragColor = vec4(kd, 1);
