@@ -7,5 +7,5 @@ in vec2 texCoords;
 layout(location = 0) out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(vec3(texture2D(tex, texCoords).x < 0.25 ? 0 : texture2D(tex, texCoords).x), 1);
+    fragColor = vec4(vec3(texture2D(tex, texCoords).x < 0.2 ? 0 : texture2D(tex, texCoords).x), 1);
 }

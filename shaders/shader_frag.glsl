@@ -1,6 +1,7 @@
 #version 450
 
 layout(location = 5) uniform vec3 viewPos;
+layout(location = 6) uniform sampler2D tex;
 
 in vec3 fragPos;
 in vec3 fragNormal;
@@ -29,7 +30,8 @@ float blinnPhong() {
 void main()
 {
     const vec3 normal = normalize(fragNormal);
-    fragColor = vec4(fragKd, 1);
+//    fragColor = vec4(fragKd, 1);
+    fragColor = vec4(texture(tex, fragTexCoord).xyz, 1);
 //    fragColor = vec4(lambert() * fragKd, 1);
 //    fragColor = vec4(lambert() * fragKd + blinnPhong() * fragKs, 1);
 //    fragColor = vec4(vec3(blinnPhong()), 1);

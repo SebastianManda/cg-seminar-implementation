@@ -3,10 +3,11 @@
 #include "texture.h"
 // Always include window first (because it includes glfw, which includes GL which needs to be included AFTER glew).
 // Can't wait for modules to fix this stuff...
+#include <queue>
 #include <framework/disable_all_warnings.h>
 #include <framework/trackball.h>
 
-#include "helpers/texture_map.h"
+#include "helpers/amplitude.h"
 #include "terrain/surface_mesh.h"
 
 DISABLE_WARNINGS_PUSH()
@@ -29,12 +30,15 @@ DISABLE_WARNINGS_POP()
 #include <iostream>
 #include <vector>
 
+
+
 class Application {
 public:
     Application()
             : m_window("CG Seminar Implementation", glm::ivec2(1600, 900), OpenGLVersion::GL45),
               m_h("resources/terrains/terrain_test_HR.png"),
-              m_trackballCamera(&m_window, glm::radians(90.0f)) {
+              m_trackballCamera(&m_window, glm::radians(90.0f)),
+              m_amplitude(m_h.getData()) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
             glViewport(0, 0, size.x, size.y);
@@ -85,6 +89,12 @@ public:
         }
     }
 
+    void preprocessing() {
+        m_amplitude.process();
+    }
+
+
+
     void update() {
         while (!m_window.shouldClose()) {
             m_window.updateInput();
@@ -115,10 +125,12 @@ public:
             glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
             glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
             glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-            m_amplitudeMap.bindRead(GL_TEXTURE0);
+            m_h.bind(GL_TEXTURE0);
             glUniform1i(3, 0);
             glUniform3fv(4, 1, glm::value_ptr(glm::vec3(m_heightScale, m_meshScale, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
+            m_amplitude.m_drainageMap.bindRead(GL_TEXTURE1);
+            glUniform1i(6, 1);
 
             m_surfaceMesh.draw();
 
@@ -164,6 +176,8 @@ private:
     Texture m_h;
     TextureMap m_amplitudeMap;
 
+    Amplitude m_amplitude;
+
     SurfaceMesh m_surfaceMesh;
     float m_heightScale{1.0f};
     float m_meshScale{2.5f};
@@ -177,6 +191,7 @@ private:
 
 int main() {
     Application app;
+    app.preprocessing();
     app.update();
 
     return 0;

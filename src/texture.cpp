@@ -63,3 +63,16 @@ void Texture::bind(GLint textureSlot) {
     glActiveTexture(textureSlot);
     glBindTexture(GL_TEXTURE_2D, m_texture);
 }
+
+std::vector<float> Texture::getData() {
+    GLint width, height;
+    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+
+    std::vector<float> data(width * height);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, data.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    return data;
+}

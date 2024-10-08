@@ -44,3 +44,9 @@ void TextureMap::bindRead(GLenum TextureUnit) {
     glActiveTexture(TextureUnit);
     glBindTexture(GL_TEXTURE_2D, m_map);
 }
+
+std::vector<float> TextureMap::getData() {
+    std::vector<float> data(m_resolution.x * m_resolution.y);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, data.data());
+    return data;
+}

@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
 #include <glm/vec3.hpp>
@@ -23,6 +24,7 @@ public:
     Texture& operator=(Texture&&) = default;
 
     void bind(GLint textureSlot);
+    std::vector<float> getData();
 
 private:
     static constexpr GLuint INVALID = 0xFFFFFFFF;

@@ -16,6 +16,8 @@ public:
 
     void bindWrite();
     void bindRead(GLenum TextureUnit);
+    std::vector<float> getData();
+    GLuint getMap() const { return m_map; }
 
 public:
     glm::ivec2 m_resolution{526};

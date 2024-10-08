@@ -79,5 +79,5 @@ void main() {
     fragKs = vec3(0.2, 0.2, 0.2);
     fragShininess = 0.2;
     fragRoughness = roughness;
-    fragTexCoord = texCoord;
+    fragTexCoord = texPos;
 }
