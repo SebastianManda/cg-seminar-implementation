@@ -2,6 +2,7 @@
 
 layout(location = 5) uniform vec3 viewPos;
 layout(location = 6) uniform sampler2D tex;
+layout(location = 7) uniform vec3 riverOptions;
 
 in vec3 fragPos;
 in vec3 fragNormal;
@@ -14,6 +15,9 @@ in vec2 fragTexCoord;
 layout(location = 0) out vec4 fragColor;
 
 vec3 lightPos = vec3(3.0, 3.0, 3.0);
+bool useRiver = riverOptions.x == 1.0 ? true : false;
+float rivelMultiplier = riverOptions.y;
+float riverThreshold = riverOptions.z;
 
 float lambert() {
     return max(dot(fragNormal, normalize(lightPos - fragPos)), 0.0);
@@ -30,8 +34,15 @@ float blinnPhong() {
 void main()
 {
     const vec3 normal = normalize(fragNormal);
-//    fragColor = vec4(fragKd, 1);
-    fragColor = vec4(texture(tex, fragTexCoord).xyz, 1);
+
+    vec3 kd = fragKd;
+    if (useRiver) {
+        if (texture(tex, fragTexCoord).x > riverThreshold)
+            kd = vec3(0, 0, texture(tex, fragTexCoord).x * rivelMultiplier);
+    }
+    if (fragPos.y < 0.0) kd = fragKd;
+
+    fragColor = vec4(kd, 1);
 //    fragColor = vec4(lambert() * fragKd, 1);
 //    fragColor = vec4(lambert() * fragKd + blinnPhong() * fragKs, 1);
 //    fragColor = vec4(vec3(blinnPhong()), 1);

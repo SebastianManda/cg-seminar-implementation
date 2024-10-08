@@ -36,9 +36,11 @@ class Application {
 public:
     Application()
             : m_window("CG Seminar Implementation", glm::ivec2(1600, 900), OpenGLVersion::GL45),
-              m_h("resources/terrains/terrain_test_HR.png"),
               m_trackballCamera(&m_window, glm::radians(90.0f)),
-              m_amplitude(m_h.getData()) {
+              m_terrain1("resources/terrains/terrain_test_HR.png"),
+              m_terrain2("resources/terrains/zoom_appalache_20km.png"),
+              m_amplitude1(m_terrain1.getData()),
+              m_amplitude2(m_terrain2.getData()) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
             glViewport(0, 0, size.x, size.y);
@@ -90,10 +92,9 @@ public:
     }
 
     void preprocessing() {
-        m_amplitude.process();
+        m_amplitude1.process();
+        m_amplitude2.process();
     }
-
-
 
     void update() {
         while (!m_window.shouldClose()) {
@@ -110,7 +111,7 @@ public:
             // Render amplitude map
             m_amplitudeMap.bindWrite();
             m_amplitudeShader.bind();
-            m_h.bind(GL_TEXTURE0);
+            m_terrain1.bind(GL_TEXTURE0);
             glUniform1i(1, 0);
             drawEmpty();
 
@@ -120,17 +121,26 @@ public:
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
 
-            // // Render mesh
+            // Render mesh
             m_defaultShader.bind();
             glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
             glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
             glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-            m_h.bind(GL_TEXTURE0);
-            glUniform1i(3, 0);
             glUniform3fv(4, 1, glm::value_ptr(glm::vec3(m_heightScale, m_meshScale, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
-            m_amplitude.m_drainageMap.bindRead(GL_TEXTURE1);
-            glUniform1i(6, 1);
+            glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_riversMult, m_riversThreshold)));
+
+            if (m_currentTerrain == 0) {
+                m_terrain1.bind(GL_TEXTURE0);
+                glUniform1i(3, 0);
+                m_amplitude1.m_drainageMap.bindRead(GL_TEXTURE1);
+                glUniform1i(6, 1);
+            } else {
+                m_terrain2.bind(GL_TEXTURE0);
+                glUniform1i(3, 0);
+                m_amplitude2.m_drainageMap.bindRead(GL_TEXTURE1);
+                glUniform1i(6, 1);
+            }
 
             m_surfaceMesh.draw();
 
@@ -139,14 +149,21 @@ public:
     }
 
     void gui() {
-        ImGui::Begin("Window");
+        ImGui::Begin("Options");
         ImGui::Checkbox("Camera can translate", &m_trackballCamera.m_canTranslate);
+        ImGui::Text("Terrain Options");
+        ImGui::RadioButton("Terrain 1", &m_currentTerrain, 0);
+        ImGui::RadioButton("Terrain 2", &m_currentTerrain, 1);
         ImGui::Text("Surface Mesh Options");
         ImGui::Checkbox("Color", &m_useColor);
         ImGui::Checkbox("Filled", &m_surfaceMesh.m_filled);
-        ImGui::SliderFloat("Height Scale", &m_heightScale, 0.01f, 2.0f);
+        ImGui::SliderFloat("Height Scale", &m_heightScale, 0.0f, 2.0f);
         ImGui::SliderFloat("Mesh Size", &m_meshScale, 1.0f, 20.0f);
         ImGui::DragInt("Vertex resoluition", &m_surfaceMesh.m_resolution, 1, 2, 2000);
+        ImGui::Text("Visualisation Options");
+        ImGui::Checkbox("Rivers", &m_useRivers);
+        ImGui::SliderFloat("Rivers Mult", &m_riversMult, 0.0f, 10.0f);
+        ImGui::SliderFloat("Rivers Threshold", &m_riversThreshold, 0.0f, 2.0f);
         ImGui::End();
     }
 
@@ -173,15 +190,21 @@ private:
     Shader m_amplitudeShader;
     Shader m_shadowShader;
 
-    Texture m_h;
-    TextureMap m_amplitudeMap;
+    Texture m_terrain1;
+    Texture m_terrain2;
+    Amplitude m_amplitude1;
+    Amplitude m_amplitude2;
 
-    Amplitude m_amplitude;
+    TextureMap m_amplitudeMap;
 
     SurfaceMesh m_surfaceMesh;
     float m_heightScale{1.0f};
     float m_meshScale{2.5f};
     bool m_useColor{false};
+    int m_currentTerrain{0};
+    bool m_useRivers{false};
+    float m_riversMult{2.0f};
+    float m_riversThreshold{0.2f};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);
