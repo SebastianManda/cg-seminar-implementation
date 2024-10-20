@@ -21,6 +21,8 @@ Orientation::Orientation(std::vector<float> dem) {
 
     m_gradientMap.Init();
     m_orientationMap.Init();
+    m_gradientMapX.Init();
+    m_gradientMapY.Init();
 }
 
 void Orientation::process() {
@@ -38,21 +40,35 @@ void Orientation::process() {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_res, m_res, 0, GL_RED, GL_FLOAT, m_orientation.data());
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindTexture(GL_TEXTURE_2D, m_gradientMapX.getMap());
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_res, m_res, 0, GL_RED, GL_FLOAT, m_gradientX.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindTexture(GL_TEXTURE_2D, m_gradientMapY.getMap());
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_res, m_res, 0, GL_RED, GL_FLOAT, m_gradientY.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Orientation::computeGradient() {
     for (int i = 0; i < m_dem.size(); i++) {
-        if (i == 0 || i == m_res - 1 || i == m_res * (m_res - 1) || i == m_res * m_res - 1) {
+        std::vector<int> neighbours = getNeighbours(i);
+        if (neighbours.size() != 4) {
             m_gradient[i] = 0.0f;
+            m_gradientX[i] = 0.0f;
+            m_gradientY[i] = 0.0f;
             continue;
         }
 
-        std::vector<int> neighbours = getNeighbours(i);
         float dx = std::abs(m_dem[neighbours[1]] - m_dem[neighbours[0]]) / 2.0f;
         float dy = std::abs(m_dem[neighbours[3]] - m_dem[neighbours[2]]) / 2.0f;
         m_gradientX[i] = dx;
         m_gradientY[i] = dy;
-        m_gradient[i] = (dy + dx) * 10.0f;
+        m_gradient[i] = std::atan2(dy, dx);
     }
 }
 

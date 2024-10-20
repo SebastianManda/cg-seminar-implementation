@@ -66,7 +66,10 @@ public:
         // });
 
         // INIT MAPS
-        // m_amplitudeMap.Init();
+        m_phasorNoise.Init();
+        m_currentTexture = &m_phasorNoise;
+        m_detailsMap_Phasor.Init();
+        m_elevationMap.Init();
 
         try {
             ShaderBuilder defaultBuilder;
@@ -80,11 +83,20 @@ public:
             texBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/texture_frag.glsl");
             m_textureShader = texBuilder.build();
 
-            ShaderBuilder amplitudeBuilder;
-            amplitudeBuilder.addStage(GL_VERTEX_SHADER, "shaders/quad_vert.glsl");
-            amplitudeBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/amplitude_frag.glsl");
-            m_amplitudeShader = amplitudeBuilder.build();
+            ShaderBuilder phasorBuilder;
+            phasorBuilder.addStage(GL_VERTEX_SHADER, "shaders/quad_vert.glsl");
+            phasorBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/phasor_frag.glsl");
+            m_phasorShader = phasorBuilder.build();
 
+            ShaderBuilder detailsBuilder;
+            detailsBuilder.addStage(GL_VERTEX_SHADER, "shaders/quad_vert.glsl");
+            detailsBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/details_frag.glsl");
+            m_detailsShader = detailsBuilder.build();
+
+            ShaderBuilder elevationBuilder;
+            elevationBuilder.addStage(GL_VERTEX_SHADER, "shaders/quad_vert.glsl");
+            elevationBuilder.addStage(GL_FRAGMENT_SHADER, "shaders/elevation_frag.glsl");
+            m_elevationShader = elevationBuilder.build();
 
             // ShaderBuilder shadowBuilder;
             // shadowBuilder.addStage(GL_VERTEX_SHADER, "shaders/shadow_vert.glsl");
@@ -101,6 +113,19 @@ public:
         m_orientation2.process();
     }
 
+    void setCurrentValues() {
+        m_terrain = (m_currentTerrain == 0) ? &m_terrain1 : &m_terrain2;
+        m_amplitude = (m_currentTerrain == 0) ? &m_amplitude1 : &m_amplitude2;
+        m_orientation = (m_currentTerrain == 0) ? &m_orientation1 : &m_orientation2;
+
+        if (m_useRivers) m_currentTexture = &m_amplitude1.m_drainageMap;
+        if (m_useAmplitude) m_currentTexture = &m_amplitude1.m_amplitudeMap;
+        if (m_useGradient) m_currentTexture = &m_orientation1.m_gradientMap;
+        if (m_useOrientation) m_currentTexture = &m_orientation1.m_orientationMap;
+        if (m_usePhasor) m_currentTexture = &m_phasorNoise;
+        if (m_useR) m_currentTexture = &m_detailsMap_Phasor;
+    }
+
     void update() {
         while (!m_window.shouldClose()) {
             m_window.updateInput();
@@ -109,16 +134,47 @@ public:
             m_projectionMatrix = m_trackballCamera.projectionMatrix();
             m_viewMatrix = m_trackballCamera.viewMatrix();
             m_surfaceMesh.update();
+            setCurrentValues();
 
             const glm::mat4 mvpMatrix = m_projectionMatrix * m_viewMatrix * m_modelMatrix;
             const glm::mat3 normalModelMatrix = glm::inverseTranspose(glm::mat3(m_modelMatrix));
 
-            // Render amplitude map
-            // m_amplitudeMap.bindWrite();
-            // m_amplitudeShader.bind();
-            // m_terrain1.bind(GL_TEXTURE0);
-            // glUniform1i(1, 0);
-            // drawEmpty();
+            // Render noise map
+            m_phasorNoise.bindWrite();
+            m_phasorShader.bind();
+            m_orientation->m_orientationMap.bindRead(GL_TEXTURE0);
+            glUniform1i(1, 0);
+            glUniform1f(2, m_frequency / 100.0f);
+            // Temp
+            glUniform1i(11, toggle_ang_profile);
+            glUniform1f(12, epsilon / 100.0f);
+            glUniform1i(13, toggle_rad_attenuation);
+            glUniform1f(14, C);
+            glUniform1i(15, toggle_transform);
+            glUniform1f(16, p_complement / 100.0f);
+            drawEmpty();
+
+            glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+
+            // Render details map
+            m_detailsMap_Phasor.bindWrite();
+            m_detailsShader.bind();
+            m_amplitude->m_amplitudeMap.bindRead(GL_TEXTURE0);
+            glUniform1i(1, 0);
+            m_phasorNoise.bindRead(GL_TEXTURE1);
+            glUniform1i(2, 1);
+            drawEmpty();
+
+            glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+
+            // Render elevation map
+            m_elevationMap.bindWrite();
+            m_elevationShader.bind();
+            m_terrain->bind(GL_TEXTURE0);
+            glUniform1i(1, 0);
+            m_detailsMap_Phasor.bindRead(GL_TEXTURE1);
+            glUniform1i(2, 1);
+            drawEmpty();
 
             glBindFramebuffer( GL_FRAMEBUFFER, 0 );
             glViewport( 0, 0, m_window.getWindowSize().x, m_window.getWindowSize().y);
@@ -134,27 +190,13 @@ public:
             glUniform3fv(4, 1, glm::value_ptr(glm::vec3(m_heightScale, m_meshScale, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
             glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_riversMult, m_riversThreshold)));
-            glUniform1i(8, m_useAmplitude || m_useGradient );
+            glUniform1i(8, m_useAmplitude || m_useGradient || m_usePhasor || m_useR);
             glUniform1i(9, m_useOrientation);
-
-            if (m_currentTerrain == 0) {
-                m_terrain1.bind(GL_TEXTURE0);
-                glUniform1i(3, 0);
-                if (m_useRivers) m_amplitude1.m_drainageMap.bindRead(GL_TEXTURE1);
-                if (m_useAmplitude) m_amplitude1.m_amplitudeMap.bindRead(GL_TEXTURE1);
-                if (m_useGradient) m_orientation1.m_gradientMap.bindRead(GL_TEXTURE1);
-                if (m_useOrientation) m_orientation1.m_orientationMap.bindRead(GL_TEXTURE1);
-                glUniform1i(6, 1);
-            } else {
-                m_terrain2.bind(GL_TEXTURE0);
-                glUniform1i(3, 0);
-                if (m_useRivers) m_amplitude2.m_drainageMap.bindRead(GL_TEXTURE1);
-                if (m_useAmplitude) m_amplitude2.m_amplitudeMap.bindRead(GL_TEXTURE1);
-                if (m_useGradient) m_orientation2.m_gradientMap.bindRead(GL_TEXTURE1);
-                if (m_useOrientation) m_orientation2.m_orientationMap.bindRead(GL_TEXTURE1);
-                glUniform1i(6, 1);
-            }
-
+            m_terrain->bind(GL_TEXTURE0);
+            if (m_finalElevation) m_elevationMap.bindRead(GL_TEXTURE0);
+            glUniform1i(3, 0);
+            m_currentTexture->bindRead(GL_TEXTURE1);
+            glUniform1i(6, 1);
             m_surfaceMesh.draw();
 
             m_window.swapBuffers();
@@ -163,6 +205,8 @@ public:
 
     void gui() {
         ImGui::Begin("Options");
+        ImGui::Checkbox("Use Final Elevation", &m_finalElevation);
+        ImGui::Checkbox("Use Details Map", &m_useR);
         ImGui::Checkbox("Camera can translate", &m_trackballCamera.m_canTranslate);
         ImGui::Text("Terrain Options");
         ImGui::RadioButton("Terrain 1", &m_currentTerrain, 0);
@@ -185,6 +229,15 @@ public:
         }
         ImGui::Checkbox("Gradient", &m_useGradient);
         ImGui::Checkbox("Orientation", &m_useOrientation);
+        ImGui::Text("Phasor Noise Options");
+        ImGui::Checkbox("Phasor Noise", &m_usePhasor);
+        ImGui::DragFloat("Frequency", &m_frequency, 1, 0.0f, 100.0f);
+        ImGui::Checkbox("Toggle angular profile", &toggle_ang_profile);
+        ImGui::DragFloat("Epsilon", &epsilon, 1, 0.0f, 100.0f);
+        ImGui::Checkbox("Toggle radial attenuation", &toggle_rad_attenuation);
+        ImGui::DragFloat("C", &C, 1, 0.0f, 100.0f);
+        ImGui::Checkbox("Toggle transform function", &toggle_transform);
+        ImGui::DragFloat("p_complement", &p_complement, 1, 0.0f, 100.0f);
         ImGui::End();
     }
 
@@ -208,15 +261,27 @@ private:
     // Shader for default rendering and for depth rendering
     Shader m_defaultShader;
     Shader m_textureShader;
-    Shader m_amplitudeShader;
-    Shader m_shadowShader;
+    Shader m_phasorShader;
+    Shader m_detailsShader;
+    Shader m_elevationShader;
+    // Shader m_shadowShader;
 
+    Texture* m_terrain;
     Texture m_terrain1;
     Texture m_terrain2;
+
+    Amplitude* m_amplitude;
     Amplitude m_amplitude1;
     Amplitude m_amplitude2;
+
+    Orientation* m_orientation;
     Orientation m_orientation1;
     Orientation m_orientation2;
+
+    TextureMap* m_currentTexture;
+    TextureMap m_phasorNoise{TextureMap(glm::ivec2(1024))};
+    TextureMap m_detailsMap_Phasor{TextureMap(glm::ivec2(1024))};
+    TextureMap m_elevationMap{TextureMap(glm::ivec2(1024))};
 
     SurfaceMesh m_surfaceMesh;
     float m_heightScale{1.0f};
@@ -230,6 +295,18 @@ private:
     float m_amplitudeIncr{0.04f};
     bool m_useGradient{false};
     bool m_useOrientation{false};
+    bool m_usePhasor{false};
+    bool m_useR{false};
+    bool m_finalElevation{false};
+
+    // temp variables
+    float m_frequency{7.2f};
+    bool toggle_ang_profile{false};
+    float epsilon{1.0f};
+    bool toggle_rad_attenuation{false};
+    float C{1.0f};
+    bool toggle_transform{true};
+    float p_complement{60.0f};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);

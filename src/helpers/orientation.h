@@ -19,6 +19,8 @@ public:
 
 public:
     TextureMap m_gradientMap;
+    TextureMap m_gradientMapX;
+    TextureMap m_gradientMapY;
     TextureMap m_orientationMap;
 
 private:

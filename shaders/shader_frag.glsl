@@ -16,6 +16,8 @@ in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 fragColor;
 
+#define PI 3.1415926538
+
 vec3 lightPos = vec3(3.0, 3.0, 3.0);
 bool useRiver = riverOptions.x == 1.0 ? true : false;
 float rivelMultiplier = riverOptions.y;
@@ -42,8 +44,8 @@ void main()
         if (texture(tex, fragTexCoord).r > riverThreshold)
             kd = vec3(0, 0, texture(tex, fragTexCoord).r * rivelMultiplier);
     }
-    if (useOrientation) kd = vec3(texture(tex, fragTexCoord).r / 10.0);
-    else if (useTextureCoords) kd = vec3(texture(tex, fragTexCoord).r);
+    if (useOrientation) kd = vec3(texture(tex, fragTexCoord).r / (2*PI));
+    if (useTextureCoords) kd = vec3(texture(tex, fragTexCoord).r);
     if (fragPos.y < 0.0) kd = fragKd;
 
     fragColor = vec4(kd, 1);
