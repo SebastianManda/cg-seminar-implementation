@@ -27,7 +27,7 @@ private:
     void computeGradient();
     void computeOrientation();
 
-    std::vector<int> getNeighbours(int index);
+    std::vector<int> getNeighbours(int index, bool diagonal = false);
 
 private:
     std::vector<float> m_dem;

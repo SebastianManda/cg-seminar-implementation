@@ -174,6 +174,7 @@ public:
             glUniform1i(1, 0);
             m_detailsMap_Phasor.bindRead(GL_TEXTURE1);
             glUniform1i(2, 1);
+            glUniform1f(3, m_detailModifier / 1000.0f);
             drawEmpty();
 
             glBindFramebuffer( GL_FRAMEBUFFER, 0 );
@@ -187,7 +188,7 @@ public:
             glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
             glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
             glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-            glUniform3fv(4, 1, glm::value_ptr(glm::vec3(m_heightScale, m_meshScale, m_useColor)));
+            glUniform4fv(4, 1, glm::value_ptr(glm::vec4(m_heightScale, m_meshScale, m_surfaceMesh.m_resolution, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
             glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_riversMult, m_riversThreshold)));
             glUniform1i(8, m_useAmplitude || m_useGradient || m_usePhasor || m_useR);
@@ -238,6 +239,7 @@ public:
         ImGui::DragFloat("C", &C, 1, 0.0f, 100.0f);
         ImGui::Checkbox("Toggle transform function", &toggle_transform);
         ImGui::DragFloat("p_complement", &p_complement, 1, 0.0f, 100.0f);
+        ImGui::DragFloat("Detail Modifier", &m_detailModifier, 1, 0.0f, 1000.0f);
         ImGui::End();
     }
 
@@ -298,15 +300,16 @@ private:
     bool m_usePhasor{false};
     bool m_useR{false};
     bool m_finalElevation{false};
+    float m_detailModifier{40.0f};
 
     // temp variables
-    float m_frequency{7.2f};
+    float m_frequency{3.0f};
     bool toggle_ang_profile{false};
     float epsilon{1.0f};
     bool toggle_rad_attenuation{false};
     float C{1.0f};
     bool toggle_transform{true};
-    float p_complement{60.0f};
+    float p_complement{25.0f};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);

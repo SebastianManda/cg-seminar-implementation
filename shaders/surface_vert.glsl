@@ -4,7 +4,7 @@ layout(location = 0) uniform mat4 mvpMatrix;
 layout(location = 1) uniform mat4 modelMatrix;
 layout(location = 2) uniform mat3 normalModelMatrix;
 layout(location = 3) uniform sampler2D heights;
-layout(location = 4) uniform vec3 meshSettings;
+layout(location = 4) uniform vec4 meshSettings;
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
@@ -19,7 +19,6 @@ out vec3 fragNormal;
 out vec3 fragKd;
 out vec3 fragKs;
 out float fragShininess;
-out float fragRoughness;
 out vec2 fragTexCoord;
 
 const vec3 c0 = vec3(38/255.0, 40/255.0, 0/255.0); // 0.0
@@ -30,7 +29,8 @@ const vec3 c4 = vec3(42/148.0, 29/255.0, 8/255.0); // 1.0
 
 const float heightScale = meshSettings.x;
 const float meshScale = meshSettings.y;
-const bool useColor = meshSettings.z == 1.0 ? true : false;
+const float meshRes = meshSettings.z;
+const bool useColor = meshSettings.w == 1.0 ? true : false;
 
 vec3 computeStepKd(float h) {
     if (h < 0.25) return c0 + (c1 - c0) * h * 4.0;
@@ -40,27 +40,23 @@ vec3 computeStepKd(float h) {
 }
 
 vec3 computeNewPos(vec3 pos) {
-    return vec3(pos.x, texture(heights, vec2((position.x + 1) / 2, (position.z + 1) / 2)).x * heightScale, pos.z);
+    vec2 texPos = vec2((pos.x + 1) / 2, (pos.z + 1) / 2);
+    return vec3(pos.x * meshScale, texture(heights, texPos).x * heightScale, pos.z * meshScale);
 }
 
-vec3 computeNormal(vec2 texPos) {
-    float offset = 1.995f / 399.0f;
+vec3 computeNormal() {
+    float offset = 1.990 / (meshRes - 1.0);
 
-    vec3 pos = vec3(position.x, 0, position.z);
+    vec3 pos = computeNewPos(vec3(position.x, 0, position.z));
     vec3 posL = computeNewPos(vec3(position.x - offset, 0, position.z));
     vec3 posR = computeNewPos(vec3(position.x + offset, 0, position.z));
     vec3 posD = computeNewPos(vec3(position.x, 0, position.z - offset));
     vec3 posU = computeNewPos(vec3(position.x, 0, position.z + offset));
 
-    vec3 n1 = normalize(cross(posL - pos, posD - pos));
-    vec3 n2 = normalize(cross(posD - pos, posR - pos));
-    vec3 n3 = normalize(cross(posR - pos, posU - pos));
-    vec3 n4 = normalize(cross(posU - pos, posL - pos));
-
-    n1 = dot(n1, vec3(1, 0, 0)) < 0 ? -n1 : n1;
-    n2 = dot(n2, vec3(1, 0, 0)) < 0 ? -n2 : n2;
-    n3 = dot(n3, vec3(1, 0, 0)) < 0 ? -n3 : n3;
-    n4 = dot(n4, vec3(1, 0, 0)) < 0 ? -n4 : n4;
+    vec3 n1 = normalize(cross(normalize(posU - pos), normalize(posR - pos)));
+    vec3 n2 = normalize(cross(normalize(posR - pos), normalize(posD - pos)));
+    vec3 n3 = normalize(cross(normalize(posD - pos), normalize(posL - pos)));
+    vec3 n4 = normalize(cross(normalize(posL - pos), normalize(posU - pos)));
 
     return normalize(n1 + n2 + n3 + n4);
 }
@@ -74,10 +70,9 @@ void main() {
     gl_Position = mvpMatrix * vec4(newPos, 1);
 
     fragPos = (modelMatrix * vec4(newPos, 1)).xyz;
-    fragNormal = computeNormal(texPos);
+    fragNormal = computeNormal();
     fragKd = kd;
-    fragKs = vec3(0.2, 0.2, 0.2);
-    fragShininess = 0.2;
-    fragRoughness = roughness;
+    fragKs = vec3(0.2);
+    fragShininess = 0.1;
     fragTexCoord = texPos;
 }

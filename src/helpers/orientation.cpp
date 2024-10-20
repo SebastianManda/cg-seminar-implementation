@@ -70,6 +70,30 @@ void Orientation::computeGradient() {
         m_gradientY[i] = dy;
         m_gradient[i] = std::atan2(dy, dx);
     }
+
+    // Smooth Gradient
+    std::vector<float> new_grad = std::vector(m_gradient.size(), 0.0f);
+    std::vector<float> new_gradX = std::vector(m_gradientX.size(), 0.0f);
+    std::vector<float> new_gradY = std::vector(m_gradientY.size(), 0.0f);
+    for (int i = 0; i < m_dem.size(); i++) {
+        std::vector<int> neighbours = getNeighbours(i, true);
+
+        float sum = m_gradient[i];
+        float sumX = m_gradientX[i];
+        float sumY = m_gradientY[i];
+        for (int neighbour : neighbours) {
+            sum += m_gradient[neighbour];
+            sumX += m_gradientX[neighbour];
+            sumY += m_gradientY[neighbour];
+        }
+        new_grad[i] = sum / (static_cast<float>(neighbours.size()) + 1);
+        new_gradX[i] = sumX / (static_cast<float>(neighbours.size()) + 1);
+        new_gradY[i] = sumY / (static_cast<float>(neighbours.size()) + 1);
+    }
+
+    m_gradient = new_grad;
+    m_gradientX = new_gradX;
+    m_gradientY = new_gradY;
 }
 
 void Orientation::computeOrientation() {
@@ -77,11 +101,17 @@ void Orientation::computeOrientation() {
         m_orientation[i] = std::atan2(m_gradientY[i], m_gradientX[i]) + std::numbers::pi / 2.0f;
 }
 
-std::vector<int> Orientation::getNeighbours(int index) {
+std::vector<int> Orientation::getNeighbours(int index, bool diagonal) {
     std::vector<int> neighbours;
     if (index % m_res != 0) neighbours.push_back(index - 1);
     if (index % m_res != m_res - 1) neighbours.push_back(index + 1);
     if (index >= m_res) neighbours.push_back(index - m_res);
     if (index < m_res * (m_res - 1)) neighbours.push_back(index + m_res);
+    if (diagonal) {
+        if (index % m_res != 0 && index >= m_res) neighbours.push_back(index - m_res - 1);
+        if (index % m_res != m_res - 1 && index >= m_res) neighbours.push_back(index - m_res + 1);
+        if (index % m_res != 0 && index < m_res * (m_res - 1)) neighbours.push_back(index + m_res - 1);
+        if (index % m_res != m_res - 1 && index < m_res * (m_res - 1)) neighbours.push_back(index + m_res + 1);
+    }
     return neighbours;
 }
