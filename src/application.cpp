@@ -170,7 +170,7 @@ public:
             // Render elevation map
             m_elevationMap.bindWrite();
             m_elevationShader.bind();
-            m_terrain->bind(GL_TEXTURE0);
+            m_orientation->m_smoothedDemMap.bindRead(GL_TEXTURE0);
             glUniform1i(1, 0);
             m_detailsMap_Phasor.bindRead(GL_TEXTURE1);
             glUniform1i(2, 1);
@@ -193,7 +193,8 @@ public:
             glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_riversMult, m_riversThreshold)));
             glUniform1i(8, m_useAmplitude || m_useGradient || m_usePhasor || m_useR);
             glUniform1i(9, m_useOrientation);
-            m_terrain->bind(GL_TEXTURE0);
+            // m_terrain->bind(GL_TEXTURE0);
+            m_orientation->m_smoothedDemMap.bindRead(GL_TEXTURE0);
             if (m_finalElevation) m_elevationMap.bindRead(GL_TEXTURE0);
             glUniform1i(3, 0);
             m_currentTexture->bindRead(GL_TEXTURE1);
@@ -281,11 +282,11 @@ private:
     Orientation m_orientation2;
 
     TextureMap* m_currentTexture;
-    TextureMap m_phasorNoise{TextureMap(glm::ivec2(1024))};
-    TextureMap m_detailsMap_Phasor{TextureMap(glm::ivec2(1024))};
-    TextureMap m_elevationMap{TextureMap(glm::ivec2(1024))};
+    TextureMap m_phasorNoise{TextureMap(glm::ivec2( 2048))};
+    TextureMap m_detailsMap_Phasor{TextureMap(glm::ivec2( 2048))};
+    TextureMap m_elevationMap{TextureMap(glm::ivec2( 2048))};
 
-    SurfaceMesh m_surfaceMesh;
+    SurfaceMesh m_surfaceMesh{SurfaceMesh(2048)};
     float m_heightScale{1.0f};
     float m_meshScale{2.5f};
     bool m_useColor{false};
@@ -303,7 +304,7 @@ private:
     float m_detailModifier{40.0f};
 
     // temp variables
-    float m_frequency{3.0f};
+    float m_frequency{1.0f};
     bool toggle_ang_profile{false};
     float epsilon{1.0f};
     bool toggle_rad_attenuation{false};

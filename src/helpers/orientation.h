@@ -19,15 +19,17 @@ public:
 
 public:
     TextureMap m_gradientMap;
-    TextureMap m_gradientMapX;
-    TextureMap m_gradientMapY;
     TextureMap m_orientationMap;
+    TextureMap m_smoothedDemMap;
 
 private:
     void computeGradient();
     void computeOrientation();
+    void upscaleDem();
+    void smoothDem(int n);
 
     std::vector<int> getNeighbours(int index, bool diagonal = false);
+    std::vector<int> getNeighboursNXN(int index, int n);
 
 private:
     std::vector<float> m_dem;
