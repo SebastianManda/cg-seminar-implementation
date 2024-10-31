@@ -18,8 +18,8 @@ Amplitude::Amplitude(std::vector<float> dem) {
     m_amplitudes = std::vector<float>(m_dem.size() / 16, std::numeric_limits<float>::max());
     m_res = std::sqrt(m_dem.size());
 
-    m_amplitudeMap.Init();
-    m_drainageMap.Init();
+    m_amplitudeMap.Init(glm::ivec2(m_res));
+    m_drainageMap.Init(glm::ivec2(m_res));
 }
 
 void Amplitude::process() {

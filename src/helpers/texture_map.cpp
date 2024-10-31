@@ -28,6 +28,11 @@ void TextureMap::Init() {
     // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void TextureMap::Init(glm::ivec2 res) {
+    m_resolution = res;
+    Init();
+}
+
 TextureMap::~TextureMap() {
     glDeleteTextures(1, &m_map);
     glDeleteFramebuffers(1, &m_fbo);

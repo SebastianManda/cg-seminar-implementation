@@ -16,6 +16,7 @@ public:
     ~TextureMap();
 
     void Init();
+    void Init(glm::ivec2 res);
 
     void bindWrite();
     void bindRead(GLenum TextureUnit);

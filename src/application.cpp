@@ -40,10 +40,12 @@ public:
               m_trackballCamera(&m_window, glm::radians(90.0f)),
               m_terrain1("resources/terrains/terrain_test_HR.png"),
               m_terrain2("resources/terrains/zoom_appalache_20km.png"),
+              m_upscaledTerrain1("resources/terrains/upscale_inter_1.png"),
+              m_upscaledTerrain2("resources/terrains/upscale_inter_2.png"),
               m_amplitude1(m_terrain1.getData()),
               m_amplitude2(m_terrain2.getData()),
-              m_orientation1(m_terrain1.getData()),
-              m_orientation2(m_terrain2.getData()) {
+              m_orientation1(m_upscaledTerrain1.getData()),
+              m_orientation2(m_upscaledTerrain2.getData()) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
             glViewport(0, 0, size.x, size.y);
@@ -117,6 +119,7 @@ public:
         m_terrain = (m_currentTerrain == 0) ? &m_terrain1 : &m_terrain2;
         m_amplitude = (m_currentTerrain == 0) ? &m_amplitude1 : &m_amplitude2;
         m_orientation = (m_currentTerrain == 0) ? &m_orientation1 : &m_orientation2;
+        m_smoothTerrain = (m_currentTerrain == 0) ? &m_upscaledTerrain1 : &m_upscaledTerrain2;
 
         if (m_useRivers) m_currentTexture = &m_amplitude1.m_drainageMap;
         if (m_useAmplitude) m_currentTexture = &m_amplitude1.m_amplitudeMap;
@@ -170,7 +173,7 @@ public:
             // Render elevation map
             m_elevationMap.bindWrite();
             m_elevationShader.bind();
-            m_orientation->m_smoothedDemMap.bindRead(GL_TEXTURE0);
+            m_smoothTerrain->bind(GL_TEXTURE0);
             glUniform1i(1, 0);
             m_detailsMap_Phasor.bindRead(GL_TEXTURE1);
             glUniform1i(2, 1);
@@ -194,7 +197,8 @@ public:
             glUniform1i(8, m_useAmplitude || m_useGradient || m_usePhasor || m_useR);
             glUniform1i(9, m_useOrientation);
             // m_terrain->bind(GL_TEXTURE0);
-            m_orientation->m_smoothedDemMap.bindRead(GL_TEXTURE0);
+            if (use_upscaled) m_smoothTerrain->bind(GL_TEXTURE0);
+            else m_terrain->bind(GL_TEXTURE0);
             if (m_finalElevation) m_elevationMap.bindRead(GL_TEXTURE0);
             glUniform1i(3, 0);
             m_currentTexture->bindRead(GL_TEXTURE1);
@@ -209,6 +213,7 @@ public:
         ImGui::Begin("Options");
         ImGui::Checkbox("Use Final Elevation", &m_finalElevation);
         ImGui::Checkbox("Use Details Map", &m_useR);
+        ImGui::Checkbox("Use Upscaled Map", &use_upscaled);
         ImGui::Checkbox("Camera can translate", &m_trackballCamera.m_canTranslate);
         ImGui::Text("Terrain Options");
         ImGui::RadioButton("Terrain 1", &m_currentTerrain, 0);
@@ -272,6 +277,9 @@ private:
     Texture* m_terrain;
     Texture m_terrain1;
     Texture m_terrain2;
+    Texture* m_smoothTerrain;
+    Texture m_upscaledTerrain1;
+    Texture m_upscaledTerrain2;
 
     Amplitude* m_amplitude;
     Amplitude m_amplitude1;
@@ -302,6 +310,7 @@ private:
     bool m_useR{false};
     bool m_finalElevation{false};
     float m_detailModifier{40.0f};
+    bool use_upscaled{true};
 
     // temp variables
     float m_frequency{1.0f};

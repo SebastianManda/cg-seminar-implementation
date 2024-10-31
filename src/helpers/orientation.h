@@ -13,9 +13,11 @@ DISABLE_WARNINGS_POP()
 
 class Orientation {
 public:
+    Orientation(std::vector<float> dem, bool upscale);
     Orientation(std::vector<float> dem);
 
     void process();
+    void process(bool upscale);
 
 public:
     TextureMap m_gradientMap;
