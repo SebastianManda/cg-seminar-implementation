@@ -31,7 +31,18 @@ DISABLE_WARNINGS_POP()
 #include <iostream>
 #include <vector>
 
-
+struct terrainStats {
+    float heightScale;
+    float meshScale;
+    float riversMult;
+    float riversThreshold;
+    float amplitudeIncr;
+    float detailModifier;
+    float frequency;
+    float epsilon;
+    float C;
+    float p_complement;
+};
 
 class Application {
 public:
@@ -72,6 +83,10 @@ public:
         m_currentTexture = &m_phasorNoise;
         m_detailsMap_Phasor.Init();
         m_elevationMap.Init();
+        m_stats = &m_terrainStats1;
+        m_amplitude = &m_amplitude1;
+        m_orientation = &m_orientation1;
+        m_terrain = &m_terrain1;
 
         try {
             ShaderBuilder defaultBuilder;
@@ -120,11 +135,12 @@ public:
         m_amplitude = (m_currentTerrain == 0) ? &m_amplitude1 : &m_amplitude2;
         m_orientation = (m_currentTerrain == 0) ? &m_orientation1 : &m_orientation2;
         m_smoothTerrain = (m_currentTerrain == 0) ? &m_upscaledTerrain1 : &m_upscaledTerrain2;
+        m_stats = (m_currentTerrain == 0) ? &m_terrainStats1 : &m_terrainStats2;
 
-        if (m_useRivers) m_currentTexture = &m_amplitude1.m_drainageMap;
-        if (m_useAmplitude) m_currentTexture = &m_amplitude1.m_amplitudeMap;
-        if (m_useGradient) m_currentTexture = &m_orientation1.m_gradientMap;
-        if (m_useOrientation) m_currentTexture = &m_orientation1.m_orientationMap;
+        if (m_useRivers) m_currentTexture = &m_amplitude->m_drainageMap;
+        if (m_useAmplitude) m_currentTexture = &m_amplitude->m_amplitudeMap;
+        if (m_useGradient) m_currentTexture = &m_orientation->m_gradientMap;
+        if (m_useOrientation) m_currentTexture = &m_orientation->m_orientationMap;
         if (m_usePhasor) m_currentTexture = &m_phasorNoise;
         if (m_useR) m_currentTexture = &m_detailsMap_Phasor;
     }
@@ -147,14 +163,14 @@ public:
             m_phasorShader.bind();
             m_orientation->m_orientationMap.bindRead(GL_TEXTURE0);
             glUniform1i(1, 0);
-            glUniform1f(2, m_frequency / 100.0f);
+            glUniform1f(2, m_stats->frequency / 100.0f);
             // Temp
             glUniform1i(11, toggle_ang_profile);
-            glUniform1f(12, epsilon / 100.0f);
+            glUniform1f(12, m_stats->epsilon / 100.0f);
             glUniform1i(13, toggle_rad_attenuation);
-            glUniform1f(14, C);
+            glUniform1f(14, m_stats->C);
             glUniform1i(15, toggle_transform);
-            glUniform1f(16, p_complement / 100.0f);
+            glUniform1f(16, m_stats->p_complement / 100.0f);
             drawEmpty();
 
             glBindFramebuffer( GL_FRAMEBUFFER, 0 );
@@ -177,7 +193,7 @@ public:
             glUniform1i(1, 0);
             m_detailsMap_Phasor.bindRead(GL_TEXTURE1);
             glUniform1i(2, 1);
-            glUniform1f(3, m_detailModifier / 1000.0f);
+            glUniform1f(3, m_stats->detailModifier / 1000.0f);
             drawEmpty();
 
             glBindFramebuffer( GL_FRAMEBUFFER, 0 );
@@ -191,9 +207,9 @@ public:
             glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
             glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(m_modelMatrix));
             glUniformMatrix3fv(2, 1, GL_FALSE, glm::value_ptr(normalModelMatrix));
-            glUniform4fv(4, 1, glm::value_ptr(glm::vec4(m_heightScale, m_meshScale, m_surfaceMesh.m_resolution, m_useColor)));
+            glUniform4fv(4, 1, glm::value_ptr(glm::vec4(m_stats->heightScale, m_stats->meshScale, m_surfaceMesh.m_resolution, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
-            glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_riversMult, m_riversThreshold)));
+            glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_stats->riversMult, m_stats->riversThreshold)));
             glUniform1i(8, m_useAmplitude || m_useGradient || m_usePhasor || m_useR);
             glUniform1i(9, m_useOrientation);
             // m_terrain->bind(GL_TEXTURE0);
@@ -221,31 +237,31 @@ public:
         ImGui::Text("Surface Mesh Options");
         ImGui::Checkbox("Color", &m_useColor);
         ImGui::Checkbox("Filled", &m_surfaceMesh.m_filled);
-        ImGui::SliderFloat("Height Scale", &m_heightScale, 0.0f, 2.0f);
-        ImGui::SliderFloat("Mesh Size", &m_meshScale, 1.0f, 20.0f);
+        ImGui::SliderFloat("Height Scale", &m_stats->heightScale, 0.0f, 2.0f);
+        ImGui::SliderFloat("Mesh Size", &m_stats->meshScale, 1.0f, 20.0f);
         ImGui::DragInt("Vertex resoluition", &m_surfaceMesh.m_resolution, 1, 2, 2000);
         ImGui::Text("Visualisation Options");
         ImGui::Checkbox("Rivers", &m_useRivers);
-        ImGui::SliderFloat("Rivers Mult", &m_riversMult, 0.0f, 10.0f);
-        ImGui::SliderFloat("Rivers Threshold", &m_riversThreshold, 0.0f, 2.0f);
+        ImGui::SliderFloat("Rivers Mult", &m_stats->riversMult, 0.0f, 10.0f);
+        ImGui::SliderFloat("Rivers Threshold", &m_stats->riversThreshold, 0.0f, 2.0f);
         ImGui::Checkbox("Amplitude", &m_useAmplitude);
-        ImGui::InputFloat("Amplitude Increment", &m_amplitudeIncr);
+        ImGui::InputFloat("Amplitude Increment", &m_stats->amplitudeIncr);
         if (ImGui::Button("Recompute Amplitude")) {
-            if (m_currentTerrain == 0) m_amplitude1.compute(m_riversThreshold, m_amplitudeIncr);
-            else m_amplitude2.compute(m_riversThreshold, m_amplitudeIncr);
+            if (m_currentTerrain == 0) m_amplitude1.compute(m_stats->riversThreshold, m_stats->amplitudeIncr);
+            else m_amplitude2.compute(m_stats->riversThreshold, m_stats->amplitudeIncr);
         }
         ImGui::Checkbox("Gradient", &m_useGradient);
         ImGui::Checkbox("Orientation", &m_useOrientation);
         ImGui::Text("Phasor Noise Options");
         ImGui::Checkbox("Phasor Noise", &m_usePhasor);
-        ImGui::DragFloat("Frequency", &m_frequency, 1, 0.0f, 100.0f);
+        ImGui::DragFloat("Frequency", &m_stats->frequency, 1, 0.0f, 100.0f);
         ImGui::Checkbox("Toggle angular profile", &toggle_ang_profile);
-        ImGui::DragFloat("Epsilon", &epsilon, 1, 0.0f, 100.0f);
+        ImGui::DragFloat("Epsilon", &m_stats->epsilon, 1, 0.0f, 100.0f);
         ImGui::Checkbox("Toggle radial attenuation", &toggle_rad_attenuation);
-        ImGui::DragFloat("C", &C, 1, 0.0f, 100.0f);
+        ImGui::DragFloat("C", &m_stats->C, 1, 0.0f, 100.0f);
         ImGui::Checkbox("Toggle transform function", &toggle_transform);
-        ImGui::DragFloat("p_complement", &p_complement, 1, 0.0f, 100.0f);
-        ImGui::DragFloat("Detail Modifier", &m_detailModifier, 1, 0.0f, 1000.0f);
+        ImGui::DragFloat("p_complement", &m_stats->p_complement, 1, 0.0f, 100.0f);
+        ImGui::DragFloat("Detail Modifier", &m_stats->detailModifier, 1, 0.0f, 1000.0f);
         ImGui::End();
     }
 
@@ -294,32 +310,25 @@ private:
     TextureMap m_detailsMap_Phasor{TextureMap(glm::ivec2( 2048))};
     TextureMap m_elevationMap{TextureMap(glm::ivec2( 2048))};
 
-    SurfaceMesh m_surfaceMesh{SurfaceMesh(2048)};
-    float m_heightScale{1.0f};
-    float m_meshScale{2.5f};
+    SurfaceMesh m_surfaceMesh{SurfaceMesh(800)};
+
     bool m_useColor{false};
-    int m_currentTerrain{0};
     bool m_useRivers{false};
-    float m_riversMult{2.0f};
-    float m_riversThreshold{0.6f};
     bool m_useAmplitude{false};
-    float m_amplitudeIncr{0.04f};
     bool m_useGradient{false};
     bool m_useOrientation{false};
     bool m_usePhasor{false};
     bool m_useR{false};
     bool m_finalElevation{false};
-    float m_detailModifier{40.0f};
     bool use_upscaled{true};
-
-    // temp variables
-    float m_frequency{1.0f};
     bool toggle_ang_profile{false};
-    float epsilon{1.0f};
     bool toggle_rad_attenuation{false};
-    float C{1.0f};
     bool toggle_transform{true};
-    float p_complement{25.0f};
+
+    int m_currentTerrain{0};
+    terrainStats* m_stats;
+    terrainStats m_terrainStats1 = {1.0f, 2.5f, 2.0f, 0.6f, 0.04f, 40.0f, 1.0f, 1.0f, 25.0f};
+    terrainStats m_terrainStats2 = {1.0f, 2.5f, 2.0f, 0.6f, 0.04f, 40.0f, 1.0f, 1.0f, 25.0f};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);
