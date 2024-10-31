@@ -51,12 +51,18 @@ public:
               m_trackballCamera(&m_window, glm::radians(90.0f)),
               m_terrain1("resources/terrains/terrain_test_HR.png"),
               m_terrain2("resources/terrains/zoom_appalache_20km.png"),
+              m_terrain3("resources/terrains/vf_moldoveanu.png"),
               m_upscaledTerrain1("resources/terrains/upscale_inter_1.png"),
               m_upscaledTerrain2("resources/terrains/upscale_inter_2.png"),
+              m_upscaledTerrain3("resources/terrains/vf_moldoveanu_upscale.png"),
+              m_externalAmplitude1("resources/smile.png"),
+              m_externalAmplitude2("resources/checkerboard.png"),
               m_amplitude1(m_terrain1.getData()),
               m_amplitude2(m_terrain2.getData()),
+              m_amplitude3(m_terrain3.getData()),
               m_orientation1(m_upscaledTerrain1.getData()),
-              m_orientation2(m_upscaledTerrain2.getData()) {
+              m_orientation2(m_upscaledTerrain2.getData()),
+              m_orientation3(m_upscaledTerrain3.getData()) {
 
         m_window.registerWindowResizeCallback([&](const glm::ivec2& size) {
             glViewport(0, 0, size.x, size.y);
@@ -87,6 +93,8 @@ public:
         m_amplitude = &m_amplitude1;
         m_orientation = &m_orientation1;
         m_terrain = &m_terrain1;
+        m_smoothTerrain = &m_upscaledTerrain1;
+        m_externalAmplitude = &m_externalAmplitude1;
 
         try {
             ShaderBuilder defaultBuilder;
@@ -126,16 +134,19 @@ public:
     void preprocessing() {
         m_amplitude1.process();
         m_amplitude2.process();
+        m_amplitude3.process();
         m_orientation1.process();
         m_orientation2.process();
+        m_orientation3.process();
     }
 
     void setCurrentValues() {
-        m_terrain = (m_currentTerrain == 0) ? &m_terrain1 : &m_terrain2;
-        m_amplitude = (m_currentTerrain == 0) ? &m_amplitude1 : &m_amplitude2;
-        m_orientation = (m_currentTerrain == 0) ? &m_orientation1 : &m_orientation2;
-        m_smoothTerrain = (m_currentTerrain == 0) ? &m_upscaledTerrain1 : &m_upscaledTerrain2;
-        m_stats = (m_currentTerrain == 0) ? &m_terrainStats1 : &m_terrainStats2;
+        m_terrain = (m_currentTerrain == 0) ? &m_terrain1 : (m_currentTerrain == 1) ? &m_terrain2 : &m_terrain3;
+        m_amplitude = (m_currentTerrain == 0) ? &m_amplitude1 : (m_currentTerrain == 1) ? &m_amplitude2 : &m_amplitude3;
+        m_orientation = (m_currentTerrain == 0) ? &m_orientation1 : (m_currentTerrain == 1) ? &m_orientation2 : &m_orientation3;
+        m_smoothTerrain = (m_currentTerrain == 0) ? &m_upscaledTerrain1 : (m_currentTerrain == 1) ? &m_upscaledTerrain2 : &m_upscaledTerrain3;
+        m_stats = (m_currentTerrain == 0) ? &m_terrainStats1 : (m_currentTerrain == 1) ? &m_terrainStats2 : &m_terrainStats3;
+        m_externalAmplitude = (m_currentAmplitude == 0) ? &m_externalAmplitude1 : &m_externalAmplitude2;
 
         if (m_useRivers) m_currentTexture = &m_amplitude->m_drainageMap;
         if (m_useAmplitude) m_currentTexture = &m_amplitude->m_amplitudeMap;
@@ -178,7 +189,8 @@ public:
             // Render details map
             m_detailsMap_Phasor.bindWrite();
             m_detailsShader.bind();
-            m_amplitude->m_amplitudeMap.bindRead(GL_TEXTURE0);
+            if (m_useExternalAmplitude) m_externalAmplitude->bind(GL_TEXTURE0);
+            else m_amplitude->m_amplitudeMap.bindRead(GL_TEXTURE0);
             glUniform1i(1, 0);
             m_phasorNoise.bindRead(GL_TEXTURE1);
             glUniform1i(2, 1);
@@ -210,14 +222,15 @@ public:
             glUniform4fv(4, 1, glm::value_ptr(glm::vec4(m_stats->heightScale, m_stats->meshScale, m_surfaceMesh.m_resolution, m_useColor)));
             glUniform3fv(5, 1, glm::value_ptr(m_trackballCamera.position()));
             glUniform3fv(7, 1, glm::value_ptr(glm::vec3(m_useRivers, m_stats->riversMult, m_stats->riversThreshold)));
-            glUniform1i(8, m_useAmplitude || m_useGradient || m_usePhasor || m_useR);
+            glUniform1i(8, m_useAmplitude || m_showExternalAmplitude || m_useGradient || m_usePhasor || m_useR);
             glUniform1i(9, m_useOrientation);
             // m_terrain->bind(GL_TEXTURE0);
             if (use_upscaled) m_smoothTerrain->bind(GL_TEXTURE0);
             else m_terrain->bind(GL_TEXTURE0);
             if (m_finalElevation) m_elevationMap.bindRead(GL_TEXTURE0);
             glUniform1i(3, 0);
-            m_currentTexture->bindRead(GL_TEXTURE1);
+            if (m_showExternalAmplitude) m_externalAmplitude->bind(GL_TEXTURE1);
+            else m_currentTexture->bindRead(GL_TEXTURE1);
             glUniform1i(6, 1);
             m_surfaceMesh.draw();
 
@@ -234,6 +247,7 @@ public:
         ImGui::Text("Terrain Options");
         ImGui::RadioButton("Terrain 1", &m_currentTerrain, 0);
         ImGui::RadioButton("Terrain 2", &m_currentTerrain, 1);
+        ImGui::RadioButton("Terrain 3", &m_currentTerrain, 2);
         ImGui::Text("Surface Mesh Options");
         ImGui::Checkbox("Color", &m_useColor);
         ImGui::Checkbox("Filled", &m_surfaceMesh.m_filled);
@@ -241,14 +255,19 @@ public:
         ImGui::SliderFloat("Mesh Size", &m_stats->meshScale, 1.0f, 20.0f);
         ImGui::DragInt("Vertex resoluition", &m_surfaceMesh.m_resolution, 1, 2, 2000);
         ImGui::Text("Visualisation Options");
+        ImGui::Checkbox("Show External Amplitude", &m_showExternalAmplitude);
+        ImGui::Checkbox("Use External Amplitude", &m_useExternalAmplitude);
+        ImGui::RadioButton("Smile", &m_currentAmplitude, 0);
+        ImGui::RadioButton("Checkerboard", &m_currentAmplitude, 1);
         ImGui::Checkbox("Rivers", &m_useRivers);
         ImGui::SliderFloat("Rivers Mult", &m_stats->riversMult, 0.0f, 10.0f);
         ImGui::SliderFloat("Rivers Threshold", &m_stats->riversThreshold, 0.0f, 2.0f);
         ImGui::Checkbox("Amplitude", &m_useAmplitude);
-        ImGui::InputFloat("Amplitude Increment", &m_stats->amplitudeIncr);
+            ImGui::InputFloat("Amplitude Increment", &m_stats->amplitudeIncr);
         if (ImGui::Button("Recompute Amplitude")) {
             if (m_currentTerrain == 0) m_amplitude1.compute(m_stats->riversThreshold, m_stats->amplitudeIncr);
-            else m_amplitude2.compute(m_stats->riversThreshold, m_stats->amplitudeIncr);
+            else if (m_currentTerrain == 1) m_amplitude2.compute(m_stats->riversThreshold, m_stats->amplitudeIncr);
+            else if (m_currentTerrain == 2) m_amplitude3.compute(m_stats->riversThreshold, m_stats->amplitudeIncr);
         }
         ImGui::Checkbox("Gradient", &m_useGradient);
         ImGui::Checkbox("Orientation", &m_useOrientation);
@@ -262,6 +281,14 @@ public:
         ImGui::Checkbox("Toggle transform function", &toggle_transform);
         ImGui::DragFloat("p_complement", &m_stats->p_complement, 1, 0.0f, 100.0f);
         ImGui::DragFloat("Detail Modifier", &m_stats->detailModifier, 1, 0.0f, 1000.0f);
+        if (ImGui::Button("Reset Terrain Options")) {
+            if (m_currentTerrain == 0)
+                *m_stats = terrainStats(1.0f, 2.5f, 2.0f, 0.6f, 0.04f, 40.0f, 1.0f, 1.0f, 25.0f);
+            else if (m_currentTerrain == 1)
+                *m_stats = terrainStats(0.25f, 2.5f, 2.0f, 0.6f, 0.04f, 100.0f, 2.0f, 1.0f, 30.0f);
+            else if (m_currentTerrain == 2)
+                *m_stats = terrainStats(1.0f, 2.5f, 2.0f, 0.6f, 0.04f, 40.0f, 1.0f, 1.0f, 25.0f);
+        }
         ImGui::End();
     }
 
@@ -293,17 +320,25 @@ private:
     Texture* m_terrain;
     Texture m_terrain1;
     Texture m_terrain2;
+    Texture m_terrain3;
     Texture* m_smoothTerrain;
     Texture m_upscaledTerrain1;
     Texture m_upscaledTerrain2;
+    Texture m_upscaledTerrain3;
+    Texture* m_externalAmplitude;
+    Texture m_externalAmplitude1;
+    Texture m_externalAmplitude2;
+
 
     Amplitude* m_amplitude;
     Amplitude m_amplitude1;
     Amplitude m_amplitude2;
+    Amplitude m_amplitude3;
 
     Orientation* m_orientation;
     Orientation m_orientation1;
     Orientation m_orientation2;
+    Orientation m_orientation3;
 
     TextureMap* m_currentTexture;
     TextureMap m_phasorNoise{TextureMap(glm::ivec2( 2048))};
@@ -324,11 +359,15 @@ private:
     bool toggle_ang_profile{false};
     bool toggle_rad_attenuation{false};
     bool toggle_transform{true};
+    bool m_useExternalAmplitude{false};
+    bool m_showExternalAmplitude{false};
 
+    int m_currentAmplitude{0};
     int m_currentTerrain{0};
     terrainStats* m_stats;
     terrainStats m_terrainStats1 = {1.0f, 2.5f, 2.0f, 0.6f, 0.04f, 40.0f, 1.0f, 1.0f, 25.0f};
-    terrainStats m_terrainStats2 = {1.0f, 2.5f, 2.0f, 0.6f, 0.04f, 40.0f, 1.0f, 1.0f, 25.0f};
+    terrainStats m_terrainStats2 = {0.25f, 2.5f, 2.0f, 0.6f, 0.04f, 100.0f, 2.0f, 1.0f, 30.0f};
+    terrainStats m_terrainStats3 = {1.0f, 2.5f, 2.0f, 0.6f, 0.04f, 40.0f, 1.0f, 1.0f, 25.0f};
 
     // Projection and view matrices for you to fill in and use
     glm::mat4 m_projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f);

@@ -40,8 +40,10 @@ void Orientation::process(bool upscale) {
         // smoothDem(5);
     }
 
-    computeGradient();
-    computeOrientation();
+    if (!upscale) {
+        computeGradient();
+        computeOrientation();
+    }
 
     if (upscale) {
         float max = *std::max_element(m_dem.begin(), m_dem.end());
@@ -54,17 +56,19 @@ void Orientation::process(bool upscale) {
         else stbi_write_bmp("../1.png", m_res, m_res, 4, textureData8Bits.data());
     }
 
-    glBindTexture(GL_TEXTURE_2D, m_gradientMap.getMap());
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_res, m_res, 0, GL_RED, GL_FLOAT, m_gradient.data());
-    glBindTexture(GL_TEXTURE_2D, 0);
+    if (!upscale) {
+        glBindTexture(GL_TEXTURE_2D, m_gradientMap.getMap());
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_res, m_res, 0, GL_RED, GL_FLOAT, m_gradient.data());
+        glBindTexture(GL_TEXTURE_2D, 0);
 
-    glBindTexture(GL_TEXTURE_2D, m_orientationMap.getMap());
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_res, m_res, 0, GL_RED, GL_FLOAT, m_orientation.data());
-    glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D, m_orientationMap.getMap());
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_res, m_res, 0, GL_RED, GL_FLOAT, m_orientation.data());
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
     glBindTexture(GL_TEXTURE_2D, m_smoothedDemMap.getMap());
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
